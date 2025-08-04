@@ -1,42 +1,115 @@
-# backend/app/api/routers/auth.py
+# backend/app/api/routers/jobs.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
-from datetime import timedelta
-from app.api.dependencies import get_db
-from app.crud.users import get_user_by_username
-from app.schemas.users import UserLogin
-from app.schemas.tokens import Token
-from app.services.auth import verify_password, create_access_token
-from app.core.config import settings
+import uuid
 
+# Import dependencies and other project files
+from app.api.dependencies import get_db
+from app.crud import jobs as crud_jobs
+from app.schemas import jobs as schemas_jobs
+
+# Create an API router instance
 router = APIRouter(
-    prefix="/auth",
-    tags=["auth"],
+    prefix="/jobs",
+    tags=["jobs"],
 )
 
-@router.post("/token", response_model=Token)
-def login_for_access_token(
-    form_data: UserLogin,
+
+@router.post(
+    "/",
+    response_model=schemas_jobs.JobPosting,
+    status_code=status.HTTP_201_CREATED
+)
+def create_job_posting(
+    job: schemas_jobs.JobPostingCreate,
     db: Session = Depends(get_db)
 ):
     """
-    Authenticates a user and returns a JWT access token.
-    """
-    user = get_user_by_username(db, username=form_data.username)
+    Create a new job posting.
 
-    # Verify if the user exists and the password is correct
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    - **title**: The job title.
+    - **description**: Detailed job description.
+    - **location**: Location of the job.
+    - **salary**: Optional salary string.
+    - **required_skills**: List of required skills.
+    """
+    return crud_jobs.create_job_posting(db=db, job=job)
+
+
+@router.get(
+    "/{job_id}",
+    response_model=schemas_jobs.JobPosting
+)
+def read_job_posting(
+    job_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve a single job posting by its ID.
+    """
+    db_job = crud_jobs.get_job_posting(db=db, job_id=job_id)
+    if db_job is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job posting not found"
         )
-    
-    # Create the access token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    
-    return {"access_token": access_token}
+    return db_job
+
+
+@router.get(
+    "/",
+    response_model=List[schemas_jobs.JobPosting]
+)
+def read_all_job_postings(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve a list of all job postings with pagination.
+    """
+    jobs = crud_jobs.get_all_job_postings(db=db, skip=skip, limit=limit)
+    return jobs
+
+
+@router.put(
+    "/{job_id}",
+    response_model=schemas_jobs.JobPosting
+)
+def update_job_posting(
+    job_id: uuid.UUID,
+    job_update: schemas_jobs.JobPostingUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing job posting.
+    """
+    db_job = crud_jobs.update_job_posting(db=db, job_id=job_id, job_update=job_update)
+    if db_job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job posting not found"
+        )
+    return db_job
+
+
+@router.delete(
+    "/{job_id}",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_job_posting(
+    job_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a job posting.
+    """
+    db_job = crud_jobs.delete_job_posting(db=db, job_id=job_id)
+    if db_job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job posting not found"
+        )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
