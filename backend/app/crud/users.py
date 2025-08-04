@@ -1,16 +1,19 @@
-# backend/app/models/users.py
+# backend/app/crud/users.py
 
-import uuid
-from sqlalchemy import Column, String, Enum
-from sqlalchemy.dialects.postgresql import UUID
-from app.database.base import Base
-from app.schemas.enums import UserRole
+from sqlalchemy.orm import Session
+from app.models.users import User
 
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String, unique=True, index=True, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), nullable=False)
+def get_user_by_username(db: Session, username: str):
+    """
+    Retrieves a user from the database by their unique username.
+    """
+    return db.query(User).filter(User.username == username).first()
+def create_user(db: Session, user_data: dict):
+    """
+    Creates a new user in the database.
+    """
+    db_user = User(**   user_data)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user  
