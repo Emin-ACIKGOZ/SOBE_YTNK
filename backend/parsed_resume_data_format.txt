@@ -1,0 +1,75 @@
+{
+  "work_experience": [
+    // An array of objects, each representing a single job.
+    {
+      "company_name": "string or null", // The name of the company.
+      "title": "string or null", // The job title.
+      "location": "string or null", // The location of the job.
+      "start_date": "string or null", // The start date of employment.
+      "end_date": "string or null", // The end date of employment (or null if current).
+      "is_current": "boolean", // True if this is the current job.
+      "description": [
+        // An array of strings for key responsibilities and achievements.
+        "string"
+      ]
+    }
+  ],
+  "education": [
+    // An array of objects, each representing an educational entry.
+    {
+      "institution": "string or null", // The name of the institution.
+      "degree": "string or null", // The degree obtained.
+      "field_of_study": "string or null", // The major or field of study.
+      "start_date": "string or null", // The start date of attendance.
+      "end_date": "string or null", // The end date of attendance (or null).
+      "gpa": "string or null" // The grade point average (if found).
+    }
+  ],
+  "skills": [
+    // A single array of strings containing all extracted skills.
+    "string"
+  ],
+  "awards": [
+    // An array of objects, each representing an award or honor.
+    {
+      "title": "string or null", // The name of the award.
+      "issuer": "string or null", // The issuing organization.
+      "date": "string or null" // The date the award was received.
+    }
+  ],
+  "certifications": [
+    // An array of objects for professional certifications.
+    {
+      "name": "string or null", // The name of the certification.
+      "issuer": "string or null", // The certifying body.
+      "date": "string or null" // The date the certification was obtained.
+    }
+  ],
+  "languages": [
+    // An array of objects, each with a language and proficiency level.
+    {
+      "language": "string or null", // The name of the language.
+      "proficiency": "string or null" // The proficiency level (e.g., 'Native', 'Fluent').
+    }
+  ],
+  "references": [
+    // An array of objects for professional references.
+    {
+      "name": "string or null", // The name of the reference.
+      "title": "string or null", // The title of the reference.
+      "company": "string or null", // The company of the reference.
+      "contact": "string or null" // Contact information (e.g., email or phone).
+    }
+  ],
+  "personal_info": {
+    // A single object for personal and country-specific data.
+    "full_name": "string or null",
+    "contact_email": "string or null",
+    "contact_phone": "string or null",
+    "linkedin_url": "string or null",
+    "headline": "string or null",
+    "summary": "string or null",
+    "location": "string or null",
+    "country_specific_info": "any" // A flexible field for data like 'Askerlik Durumu'.
+  }
+}

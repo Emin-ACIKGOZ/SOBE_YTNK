@@ -24,3 +24,11 @@ class SeniorityLevel(PyEnum):
     mid_senior_level = "Mid-Senior Level"
     director = "Director"
     executive = "Executive"
+
+class EducationLevel(enum.Enum):
+    NONE = "None"
+    HIGH_SCHOOL = "High School"
+    ASSOCIATE = "Associate"
+    BACHELORS = "Bachelors"
+    MASTERS = "Masters"
+    DOCTORATE = "Doctorate"
