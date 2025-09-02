@@ -1,1 +1,31 @@
-backend/.env
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dependencies
+.env
+.venv/
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+
+# Logs and output files
+*.log
+*.txt
+app/services/resume.txt
+app/services/test_resume.pdf
+
+# OS and temporary files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Ignore test scripts
+backend/app/services/test_script_text.py

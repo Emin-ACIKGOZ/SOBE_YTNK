@@ -1,6 +1,18 @@
 # backend/app/schemas/enums.py
 
 from enum import Enum as PyEnum
+import enum
+
+class ApplicationStatus(str, PyEnum):
+    """
+    Defines the possible statuses for a job application.
+    """
+    RECEIVED = "received"
+    IN_REVIEW = "in_review"
+    SHORTLISTED = "shortlisted"
+    REJECTED = "rejected"
+    HIRED = "hired"
+
 
 class UserRole(str, PyEnum):
     """
