@@ -51,7 +51,7 @@ class LLMResumeOutput(BaseModel):
     parsed_resume_data: Any
 
 def _get_llm_payload(text: str) -> dict:
-    """Constructs the LLM payload with the prompt and structured output schema."""
+    
     prompt = f"""
     You are a highly skilled resume parser. Your task is to extract all relevant information from the following raw resume text. The resume can be in English or Turkish.
 
@@ -60,34 +60,72 @@ def _get_llm_payload(text: str) -> dict:
     Raw Resume Text:
     {text}
     """
-
-    return {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": {
-                "type": "OBJECT",
+    
+    
+    data = {
+    "model": "qwen2.5-coder:32b", 
+    "messages": [
+        {
+            "role": "system",
+            "content":"You are a highly skilled resume parser. Your task is to extract all relevant information from the following raw resume text. The resume can be in English or Turkish."
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ],
+    "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "generate_sqlschema",
+            "strict": "true",
+        "schema": {
+                "type": "object",
                 "properties": {
-                    "first_name": {"type": "STRING"},
-                    "last_name": {"type": "STRING"},
-                    "email": {"type": "STRING"},
-                    "phone_number": {"type": "STRING", "nullable": True},
-                    "linkedin_profile_url": {"type": "STRING", "nullable": True},
-                    "github_profile_url": {"type": "STRING", "nullable": True},
-                    "resume_language": {"type": "STRING", "description": "Detect and return the primary language of the resume (e.g., 'en', 'tr')."},
+                    "first_name": {"type": "string"},
+                    "last_name": {"type": "string"},
+                    "email": {"type": "string"},
+                    "phone_number": {"type": "string"},
+                    "linkedin_profile_url": {"type": "string"},
+                    "github_profile_url": {"type": "string"},
+                    "resume_language": {"type": "string", "description": "Detect and return the primary language of the resume (e.g., 'en', 'tr')."},
                     "total_years_experience": {"type": "NUMBER"},
                     "has_bachelors_degree": {"type": "BOOLEAN"},
-                    "highest_education_level": {"type": "STRING", "enum": ["None", "High School", "Associate", "Bachelors", "Masters", "Doctorate"]},
-                    "most_recent_job_title": {"type": "STRING", "nullable": True},
-                    "most_recent_company": {"type": "STRING", "nullable": True},
-                    "parsed_skills": {"type": "ARRAY", "items": {"type": "STRING"}},
-                    "certifications": {"type": "ARRAY", "items": {"type": "STRING"}},
-                    "languages": {"type": "ARRAY", "items": {"type": "STRING"}},
-                    "parsed_resume_data": {"type": "STRING", "description": "The entire raw text of the resume as a single string."}
-                }
+                    "highest_education_level": {"type": "string", "enum": ["None", "High School", "Associate", "Bachelors", "Masters", "Doctorate"]},
+                    "most_recent_job_title": {"type": "string"},
+                    "most_recent_company": {"type": "string"},
+                    "parsed_skills": {"type": "ARRAY", "items": {"type": "string"}},
+                    "certifications": {"type": "ARRAY", "items": {"type": "string"}},
+                    "languages": {"type": "ARRAY", "items": {"type": "string"}},
+                    "parsed_resume_data": {"type": "string", "description": "The entire raw text of the resume as a single string."}
+                },
+                "required": [
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone_number",
+                    "linkedin_profile_url",
+                    "github_profile_url",
+                    "resume_language",
+                    "total_years_experience",
+                    "has_bachelors_degree",
+                    "highest_education_level",
+                    "most_recent_job_title",
+                    "most_recent_company",
+                    "parsed_skills",
+                    "certifications",
+                    "languages",
+                    "parsed_resume_data"
+                ]
             }
         }
-    }
+    },
+    "temperature": 0.7,
+    "max_tokens": 250,
+    "stream": False
+}
+   
+    return data
 
 async def process_resume_with_llm(raw_text: str, resume_file_url: str) -> tuple[Applicant, Application]:
     """
@@ -95,7 +133,7 @@ async def process_resume_with_llm(raw_text: str, resume_file_url: str) -> tuple[
     """
     # 1. Pre-process the raw text for better LLM parsing
     cleaned_text = raw_text
-
+    
     # 2. Prepare the LLM request
     payload = _get_llm_payload(cleaned_text)
 
@@ -104,15 +142,13 @@ async def process_resume_with_llm(raw_text: str, resume_file_url: str) -> tuple[
     for i in range(retries):
         try:
             # Prepare headers with the API key
-            headers = {'Content-Type': 'application/json'}
-            if API_KEY:
-                headers['X-goog-api-key'] = API_KEY
+            headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer hvl-jiQhjbBbwZHvUGRAa3TPlYsKq0U4ira2tI81lUIyk9kfPSf'
+            }
 
-            # Log to check if the API key is being provided
-            logger.info(f"API key is provided: {bool(API_KEY)}")
-
-            response = requests.post(API_URL, headers=headers, json=payload)
-            
+            response = requests.post(API_URL, headers=headers, json=json.dumps(payload))
+            print("response: " response)
             # Log the final URL used for the request
             logger.info(f"Attempting to connect to: {response.request.url}")
 

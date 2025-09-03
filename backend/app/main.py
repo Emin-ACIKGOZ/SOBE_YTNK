@@ -1,9 +1,9 @@
 # backend/app/main.py
 
 from fastapi import FastAPI
-from app.database.base import Base
-from app.database.session import engine
-from app.api.routers import auth, temporary_test 
+# from database.base import Base
+# from database.session import engine
+from api.routers import applications
 
 
 # Initialize the FastAPI application
@@ -14,13 +14,18 @@ app = FastAPI(
 )
 
 # Include the new authentication router
-app.include_router(auth.router)
+# app.include_router(auth.router)
 
 # TEMPORARY: Include the test router for authentication verification
-app.include_router(temporary_test.router)
+# app.include_router(temporary_test.router)
+app.include_router(applications.router)
 
-# This part is for creating tables on startup, good for development
-# In a production environment, you would use migrations (e.g., Alembic)
-@app.on_event("startup")
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+# # This part is for creating tables on startup, good for development
+# # In a production environment, you would use migrations (e.g., Alembic)
+# @app.on_event("startup")
+# def create_tables():
+#     Base.metadata.create_all(bind=engine)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

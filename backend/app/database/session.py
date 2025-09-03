@@ -2,7 +2,7 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.core.config import settings
+from core.config import settings
 
 # Create a database engine using the DATABASE_URL from your settings.
 # The 'pool_pre_ping' argument ensures the connection is still alive.
