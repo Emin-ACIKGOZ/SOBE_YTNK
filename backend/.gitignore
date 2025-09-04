@@ -26,6 +26,3 @@ Thumbs.db
 # IDE-specific files
 .idea/
 .vscode/
-
-# Ignore test scripts
-backend/app/services/test_script_text.py
