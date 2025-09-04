@@ -3,10 +3,12 @@
 from enum import Enum as PyEnum
 import enum
 
+
 class ApplicationStatus(str, PyEnum):
     """
     Defines the possible statuses for a job application.
     """
+
     RECEIVED = "received"
     IN_REVIEW = "in_review"
     SHORTLISTED = "shortlisted"
@@ -18,18 +20,23 @@ class UserRole(str, PyEnum):
     """
     Extensible Enum for user roles.
     """
+
     HR = "hr"
     APPLICANT = "applicant"
 
+
 class EmploymentType(PyEnum):
     """Defines the types of employment."""
+
     full_time = "Full-time"
     part_time = "Part-time"
     contract = "Contract"
     internship = "Internship"
 
+
 class SeniorityLevel(PyEnum):
     """Defines the seniority level of the position."""
+
     internship = "Internship"
     entry_level = "Entry Level"
     associate = "Associate"
@@ -37,7 +44,8 @@ class SeniorityLevel(PyEnum):
     director = "Director"
     executive = "Executive"
 
-class EducationLevel(enum.Enum):
+
+class EducationLevel(str, enum.Enum):
     NONE = "None"
     HIGH_SCHOOL = "High School"
     ASSOCIATE = "Associate"

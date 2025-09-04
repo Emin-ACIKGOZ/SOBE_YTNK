@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from app.database.base import Base
 from app.schemas.enums import UserRole
 
+
 class User(Base):
     __tablename__ = "users"
 

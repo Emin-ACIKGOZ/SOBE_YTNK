@@ -7,11 +7,13 @@ from datetime import datetime
 from app.database.base import Base
 from app.schemas.enums import SeniorityLevel, EmploymentType
 
+
 class JobPosting(Base):
     """
     SQLAlchemy ORM model for a job posting.
     This model defines the table structure in the database.
     """
+
     __tablename__ = "job_postings"
 
     job_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -33,4 +35,3 @@ class JobPosting(Base):
     # Metadata fields
     posted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-

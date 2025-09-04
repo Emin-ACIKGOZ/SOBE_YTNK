@@ -3,10 +3,12 @@ from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 from app.database.base import Base
 
+
 class Applicant(Base):
     """
     SQLAlchemy ORM model for an applicant.
     """
+
     __tablename__ = "applicants"
 
     applicant_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
