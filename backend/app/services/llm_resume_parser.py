@@ -33,7 +33,8 @@ API_URL = "https://aigateway.havelsan.com.tr/chat/v1/chat/completions"
 class LLMResumeOutput(BaseModel):
     """
     Internal Pydantic schema for parsing the LLM's JSON response.
-    Updated to match the new, more granular schema.
+    This schema is now updated to reflect that the LLM will not generate
+    the raw text. The raw text is handled in the application logic.
     """
 
     first_name: str
@@ -50,7 +51,7 @@ class LLMResumeOutput(BaseModel):
     parsed_skills: Optional[List[str]] = []
     certifications: Optional[List[Certification]] = []
     languages: Optional[List[LanguageSkill]] = []
-    parsed_resume_data: Any
+    # This field is now correctly set outside of the LLM call.
 
 
 def _parse_date_string(date_str: str) -> Optional[datetime]:
@@ -139,41 +140,78 @@ def _calculate_total_experience(work_history: List[WorkExperience]) -> int:
 def _get_llm_payload(text: str) -> dict:
     """
     Constructs the correct request payload for the LLM API,
-    now instructing it to return structured lists for work, education, and languages.
+    with a prompt that no longer requests the LLM to reproduce the raw text.
     """
+    refined_prompt = f"""
+                Extract the following information from the provided resume text. 
+                The resume may be in either English or Turkish. Return the output as a single, strict JSON object. 
+                Do not include any additional text, explanations, or markdown fences (e.g., ```json).
+
+                **Instructions:**
+                - For any field where information is not found in the resume, the value must be set to `null`.
+                - **For all dates (start_date, end_date):**
+                    - If the date indicates the position is ongoing i.e. "Present" (or "devam ediyor"), write "present" as the date.
+                    - If only the year is available (e.g., "2016"), use `01/yyyy` (e.g., "01/2016").
+                    - If the exact date is found, use the `mm/yyyy` format (e.g., "03/2006").
+                - The `resume_language` field must be `'en'` for English or `'tr'` for Turkish, based on the primary language of the resume.
+
+                {{
+                  "first_name": "string",
+                  "last_name": "string",
+                  "email": "string | null",
+                  "phone_number": "string | null",
+                  "linkedin_profile_url": "string | null",
+                  "github_profile_url": "string | null",
+                  "resume_language": "string",
+                  "work_history": [
+                    {{
+                      "job_title": "string",
+                      "company": "string",
+                      "start_date": "mm/yyyy",
+                      "end_date": "mm/yyyy",
+                      "description": "string | null"
+                    }}
+                  ],
+                  "education_history": [
+                    {{
+                      "degree": "string",
+                      "institution": "string",
+                      "start_date": "mm/yyyy",
+                      "end_date": "mm/yyyy",
+                      "location": "string | null"
+                    }}
+                  ],
+                  "parsed_skills": [ "string" ],
+                  "certifications": [
+                    {{
+                      "name": "string",
+                      "year_issued": "string",
+                      "issuing_organization": "string | null"
+                    }}
+                  ],
+                  "languages": [
+                    {{
+                      "name": "string",
+                      "level": "string | null"
+                    }}
+                  ]
+                }}
+
+                **Resume Text:**
+                {text}
+                """
+
     data = {
         "model": "qwen2.5-coder:32b",
         "messages": [
             {
                 "role": "system",
-                "content": "You are a highly skilled resume parser. Your task is to extract all relevant information from the following raw resume text. The resume can be in English or Turkish. The output must be a single, valid JSON object that adheres to the specified schema, without any additional text or formatting (like '```json').",
+                "content": "You are a resume parser. Your task is to extract all relevant information from the following raw resume text. The output must be a single, valid JSON object that adheres to the specified schema, without any additional text or formatting (like '```json').",
             },
-            {
-                "role": "user",
-                "content": f"""
-                Extract the following information from the resume text below and return it as a JSON object:
-                
-                1.  **first_name**: The applicant's first name.
-                2.  **last_name**: The applicant's last name.
-                3.  **email**: The applicant's email address.
-                4.  **phone_number**: The applicant's phone number.
-                5.  **linkedin_profile_url**: The URL of the applicant's LinkedIn profile.
-                6.  **github_profile_url**: The URL of the applicant's GitHub profile.
-                7.  **resume_language**: The primary language of the resume (e.g., 'en', 'tr').
-                8.  **work_history**: An array of objects. Each object should contain "job_title", "company", "start_date" (formatted as "mm/yyyy" or "yyyy" if no month is present), "end_date" (formatted as "mm/yyyy" or "yyyy" if no month is present), and "description" for all professional experiences listed.
-                9.  **education_history**: An array of objects. Each object should contain "degree", "institution", "start_date", "end_date", and "location" for all education listed.
-                10. **parsed_skills**: A list of technical and soft skills.
-                11. **certifications**: An array of objects. Each object should contain the "name" of the certification, the "year_issued", and the "issuing_organization" if available.
-                12. **languages**: An array of objects. Each object should contain the "name" of the language and its "level" of proficiency if proficiency is listed.
-                13. **parsed_resume_data**: The entire raw text of the resume.
-
-                **Resume Text:**
-                {text}
-                """,
-            },
+            {"role": "user", "content": refined_prompt},
         ],
-        "temperature": 0.7,
-        "max_tokens": 250,
+        "temperature": 0.3,
+        "max_tokens": 2048,
     }
     return data
 
@@ -196,12 +234,44 @@ def _repair_llm_json(output_str: str) -> Optional[dict]:
         return None
 
 
+def _process_work_history_dates(
+    work_history: List[WorkExperience],
+) -> List[WorkExperience]:
+    """
+    Post-processes the work history list to convert 'present' dates into 'mm/yyyy' format.
+    """
+    processed_history = []
+    current_month_year = datetime.now().strftime("%m/%Y")
+    for job in work_history:
+        # Check if the start date is 'present', which should not happen based on prompt, but as a safeguard
+        if job.start_date and job.start_date.lower().strip() == "present":
+            start_date_str = current_month_year
+        else:
+            start_date_str = job.start_date
+
+        if job.end_date and job.end_date.lower().strip() == "present":
+            end_date_str = current_month_year
+        else:
+            end_date_str = job.end_date
+
+        processed_history.append(
+            WorkExperience(
+                job_title=job.job_title,
+                company=job.company,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                description=job.description,
+            )
+        )
+    return processed_history
+
+
 async def process_resume_with_llm(
     raw_text: str, resume_file_url: str
 ) -> tuple[Optional[Applicant], Optional[Application]]:
     """
     Uses an LLM to process raw resume text and return structured Applicant and Application data.
-    Updated to handle the new LLM output structure.
+    Updated to handle the new LLM output structure and manage the raw text locally.
     """
     payload = _get_llm_payload(raw_text)
 
@@ -230,15 +300,20 @@ async def process_resume_with_llm(
 
             logger.info("Parsed LLM content JSON:\n%s", json.dumps(llm_data, indent=4))
 
+            # The Pydantic model now aligns perfectly with the LLM's output
             llm_output = LLMResumeOutput(**llm_data)
 
             applicant_id = uuid.uuid4()
             application_id = uuid.uuid4()
             current_time = datetime.now()
 
-            total_years_experience = _calculate_total_experience(
+            # Process work history dates to convert "present" to current date
+            processed_work_history = _process_work_history_dates(
                 llm_output.work_history
             )
+
+            # Calculate total experience using the processed list
+            total_years_experience = _calculate_total_experience(processed_work_history)
 
             applicant = Applicant(
                 applicant_id=applicant_id,
@@ -256,12 +331,12 @@ async def process_resume_with_llm(
                 resume_file_url=resume_file_url,
                 resume_language=llm_output.resume_language,
                 total_years_experience=total_years_experience,
-                work_history=llm_output.work_history,
+                work_history=processed_work_history,
                 education_history=llm_output.education_history,
                 parsed_skills=llm_output.parsed_skills,
                 certifications=llm_output.certifications,
                 languages=llm_output.languages,
-                parsed_resume_data=llm_output.parsed_resume_data,
+                parsed_resume_data=raw_text,
                 status=ApplicationStatus.RECEIVED,
                 application_date=current_time,
             )
