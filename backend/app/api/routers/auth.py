@@ -1,115 +1,50 @@
-# backend/app/api/routers/jobs.py
-
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-import uuid
+from datetime import timedelta
 
-# Import dependencies and other project files
 from backend.app.api.dependencies import get_db
-from backend.app.crud import jobs as crud_jobs
-from backend.app.schemas import jobs as schemas_jobs
+from backend.app.crud.users import get_user_by_username
+from backend.app.core.security import verify_password
+from backend.app.core.config import settings
+from backend.app.schemas.tokens import Token
+from backend.app.services.auth import create_access_token
+from backend.app.schemas.users import UserCreate, User as UserSchema
+from backend.app.crud import users as crud_users
 
-# Create an API router instance
-router = APIRouter(
-    prefix="/jobs",
-    tags=["jobs"],
-)
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post(
-    "/",
-    response_model=schemas_jobs.JobPosting,
-    status_code=status.HTTP_201_CREATED
-)
-def create_job_posting(
-    job: schemas_jobs.JobPostingCreate,
-    db: Session = Depends(get_db)
+@router.post("/token", response_model=Token)
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     """
-    Create a new job posting.
-
-    - **title**: The job title.
-    - **description**: Detailed job description.
-    - **location**: Location of the job.
-    - **salary**: Optional salary string.
-    - **required_skills**: List of required skills.
+    Authenticates a user and returns an access token.
     """
-    return crud_jobs.create_job_posting(db=db, job=job)
-
-
-@router.get(
-    "/{job_id}",
-    response_model=schemas_jobs.JobPosting
-)
-def read_job_posting(
-    job_id: uuid.UUID,
-    db: Session = Depends(get_db)
-):
-    """
-    Retrieve a single job posting by its ID.
-    """
-    db_job = crud_jobs.get_job_posting(db=db, job_id=job_id)
-    if db_job is None:
+    user = get_user_by_username(db, username=form_data.username)
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return db_job
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get(
-    "/",
-    response_model=List[schemas_jobs.JobPosting]
-)
-def read_all_job_postings(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
+@router.post("/signup", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+def signup_user(user_in: UserCreate, db: Session = Depends(get_db)):
     """
-    Retrieve a list of all job postings with pagination.
+    Registers a new user.
     """
-    jobs = crud_jobs.get_all_job_postings(db=db, skip=skip, limit=limit)
-    return jobs
-
-
-@router.put(
-    "/{job_id}",
-    response_model=schemas_jobs.JobPosting
-)
-def update_job_posting(
-    job_id: uuid.UUID,
-    job_update: schemas_jobs.JobPostingUpdate,
-    db: Session = Depends(get_db)
-):
-    """
-    Update an existing job posting.
-    """
-    db_job = crud_jobs.update_job_posting(db=db, job_id=job_id, job_update=job_update)
-    if db_job is None:
+    db_user = crud_users.get_user_by_username(db, username=user_in.username)
+    if db_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
+            status_code=400, detail="Username or email already registered"
         )
-    return db_job
-
-
-@router.delete(
-    "/{job_id}",
-    status_code=status.HTTP_204_NO_CONTENT
-)
-def delete_job_posting(
-    job_id: uuid.UUID,
-    db: Session = Depends(get_db)
-):
-    """
-    Delete a job posting.
-    """
-    db_job = crud_jobs.delete_job_posting(db=db, job_id=job_id)
-    if db_job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
-        )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    db_user = crud_users.create_user(db=db, user=user_in)
+    return db_user

@@ -24,7 +24,19 @@ class ApplicantCreate(ApplicantBase):
     Inherits from ApplicantBase.
     """
 
-    pass
+
+class ApplicantUpdate(BaseModel):
+    """
+    Pydantic schema for updating an existing Applicant.
+    All fields are optional to allow for partial updates.
+    """
+
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    linkedin_profile_url: Optional[str] = None
+    github_profile_url: Optional[str] = None
 
 
 class Applicant(ApplicantBase):

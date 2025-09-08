@@ -1,55 +1,61 @@
-import uuid
-from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-
-# Import your SQLAlchemy model
 from backend.app.models.applicants import Applicant
+from backend.app.schemas.applicants import ApplicantCreate, ApplicantUpdate
+import uuid
 
-# Import your Pydantic schema
-from backend.app.schemas.applicants import ApplicantCreate
 
-# --- CRUD Operations for Applicant ---
+def create_applicant(db: Session, applicant: ApplicantCreate):
+    """
+    Creates a new applicant in the database.
+    """
+    db_applicant = Applicant(
+        applicant_id=uuid.uuid4(), **applicant.model_dump(exclude_unset=True)
+    )
+    db.add(db_applicant)
+    db.commit()
+    db.refresh(db_applicant)
+    return db_applicant
 
-def get_applicant(db: Session, applicant_id: uuid.UUID) -> Optional[Applicant]:
+
+def get_applicant(db: Session, applicant_id: uuid.UUID):
     """
     Retrieves a single applicant by their ID.
     """
     return db.query(Applicant).filter(Applicant.applicant_id == applicant_id).first()
 
-def get_applicant_by_email(db: Session, email: str) -> Optional[Applicant]:
+
+def get_applicant_by_email(db: Session, email: str):
     """
     Retrieves a single applicant by their email address.
-    Useful for checking if an applicant already exists before creating a new one.
     """
     return db.query(Applicant).filter(Applicant.email == email).first()
 
-def create_applicant(db: Session, applicant_in: ApplicantCreate) -> Applicant:
+
+def get_applicants(db: Session, skip: int = 0, limit: int = 100):
     """
-    Creates a new applicant record in the database.
-    Args:
-        db: The database session.
-        applicant_in: Pydantic model containing applicant data for creation.
-    Returns:
-        The newly created Applicant ORM object.
+    Retrieves a list of applicants.
     """
-    db_applicant = Applicant(**applicant_in.model_dump())
+    return db.query(Applicant).offset(skip).limit(limit).all()
+
+
+def update_applicant(
+    db: Session, db_applicant: Applicant, applicant_in: ApplicantUpdate
+):
+    """
+    Updates an existing applicant's information.
+    """
+    update_data = applicant_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_applicant, key, value)
     db.add(db_applicant)
     db.commit()
-    db.refresh(db_applicant) # Refresh the object to get any database-generated values (like applicant_id)
+    db.refresh(db_applicant)
     return db_applicant
 
-def delete_applicant(db: Session, applicant_id: uuid.UUID) -> bool:
+
+def delete_applicant(db: Session, db_applicant: Applicant):
     """
-    Deletes an applicant record from the database.
-    Returns True if the applicant was found and deleted, False otherwise.
-    Note: Deleting an applicant might require handling associated applications
-          (e.g., setting their applicant_id to NULL or deleting them too,
-          depending on your database cascade rules).
+    Deletes an applicant from the database.
     """
-    db_applicant = get_applicant(db, applicant_id)
-    if db_applicant:
-        db.delete(db_applicant)
-        db.commit()
-        return True
-    return False
+    db.delete(db_applicant)
+    db.commit()

@@ -1,37 +1,30 @@
-# backend/app/models/jobs.py
-
-import uuid
-from sqlalchemy import Column, String, Enum, DateTime, Boolean
+from sqlalchemy import Column, String, Integer, DateTime, Boolean
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from datetime import datetime
+import uuid
+import enum
+
 from backend.app.database.base import Base
 from backend.app.schemas.enums import SeniorityLevel, EmploymentType
 
 
 class JobPosting(Base):
-    """
-    SQLAlchemy ORM model for a job posting.
-    This model defines the table structure in the database.
-    """
-
-    __tablename__ = "job_postings"
+    __tablename__ = "jobs"
 
     job_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    title = Column(String, index=True, nullable=False)
+    title = Column(String, nullable=False)
     company_name = Column(String, nullable=False)
     location = Column(String, nullable=False)
-    seniority_level = Column(Enum(SeniorityLevel), nullable=False)
-    employment_type = Column(Enum(EmploymentType), nullable=False)
-
+    seniority_level = Column(enum.Enum(SeniorityLevel), nullable=False)
+    employment_type = Column(enum.Enum(EmploymentType), nullable=False)
     description = Column(String, nullable=False)
-    responsibilities = Column(ARRAY(String), nullable=False)
-
-    # Separate fields for filtering and ranking
-    qualifications = Column(ARRAY(String), nullable=False)
-    required_skills = Column(ARRAY(String), nullable=False)
-
+    responsibilities = Column(ARRAY(String), default=[])
+    qualifications = Column(ARRAY(String), default=[])
+    required_skills = Column(ARRAY(String), default=[])
     salary = Column(String, nullable=True)
+    posted_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
 
-    # Metadata fields
-    posted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
+    # Relationship to the Application model
+    applications = relationship("Application", back_populates="job")

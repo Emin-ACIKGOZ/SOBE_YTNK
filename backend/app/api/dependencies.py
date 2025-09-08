@@ -8,12 +8,15 @@ from backend.app.core.config import settings
 from backend.app.database.session import SessionLocal
 from backend.app.models.users import User
 from backend.app.schemas.tokens import TokenData
-from backend.app.crud.users import get_user_by_username  # We will update this CRUD function to be more generic
+from backend.app.crud.users import (
+    get_user_by_username,
+)  # We will update this CRUD function to be more generic
 
 # The OAuth2PasswordBearer class will handle extracting the token from the
 # "Authorization: Bearer <token>" header. The tokenUrl is used by the
 # interactive docs UI.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
 
 def get_db():
     """
@@ -25,7 +28,10 @@ def get_db():
     finally:
         db.close()
 
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
+
+def get_current_user(
+    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+) -> User:
     """
     A dependency to get the current authenticated user from a JWT.
 
@@ -42,7 +48,9 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     )
     try:
         # Decode the JWT token to get the payload
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -54,8 +62,9 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     user = get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
-    
+
     return user
+
 
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """
