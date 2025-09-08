@@ -4,11 +4,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
-from app.core.config import settings
-from app.database.session import SessionLocal
-from app.models.users import User
-from app.schemas.tokens import TokenData
-from app.crud.users import get_user_by_username  # We will update this CRUD function to be more generic
+from backend.app.core.config import settings
+from backend.app.database.session import SessionLocal
+from backend.app.models.users import User
+from backend.app.schemas.tokens import TokenData
+from backend.app.crud.users import get_user_by_username  # We will update this CRUD function to be more generic
 
 # The OAuth2PasswordBearer class will handle extracting the token from the
 # "Authorization: Bearer <token>" header. The tokenUrl is used by the

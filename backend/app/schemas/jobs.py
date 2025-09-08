@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 # Import enums from the centralized file
-from app.schemas.enums import SeniorityLevel, EmploymentType
+from backend.app.schemas.enums import SeniorityLevel, EmploymentType
 
 
 class JobPostingBase(BaseModel):

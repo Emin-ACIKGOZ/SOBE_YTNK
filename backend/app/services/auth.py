@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from app.core.config import settings
+from backend.app.core.config import settings
 
 # CryptContext for password hashing and verification
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

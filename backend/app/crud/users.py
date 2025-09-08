@@ -1,7 +1,7 @@
 # backend/app/crud/users.py
 
 from sqlalchemy.orm import Session
-from app.models.users import User
+from backend.app.models.users import User
 
 def get_user_by_username(db: Session, username: str):
     """

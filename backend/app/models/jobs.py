@@ -4,8 +4,8 @@ import uuid
 from sqlalchemy import Column, String, Enum, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from datetime import datetime
-from app.database.base import Base
-from app.schemas.enums import SeniorityLevel, EmploymentType
+from backend.app.database.base import Base
+from backend.app.schemas.enums import SeniorityLevel, EmploymentType
 
 
 class JobPosting(Base):

@@ -2,8 +2,8 @@ import uuid
 from sqlalchemy import Column, String, Enum, DateTime, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from datetime import datetime
-from app.database.base import Base
-from app.schemas.enums import ApplicationStatus
+from backend.app.database.base import Base
+from backend.app.schemas.enums import ApplicationStatus
 
 
 class Application(Base):

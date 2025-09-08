@@ -11,8 +11,8 @@ from pydantic import BaseModel
 import json_repair
 import requests
 
-from app.schemas.applicants import Applicant
-from app.schemas.applications import (
+from backend.app.schemas.applicants import Applicant
+from backend.app.schemas.applications import (
     Application,
     ApplicationStatus,
     Certification,

@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class Applicant(Base):

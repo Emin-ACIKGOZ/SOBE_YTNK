@@ -2,7 +2,7 @@
 
 import uuid
 from pydantic import BaseModel, EmailStr, Field
-from app.schemas.enums import UserRole
+from backend.app.schemas.enums import UserRole
 
 
 class UserBase(BaseModel):

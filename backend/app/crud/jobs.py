@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 import uuid
 
 # Import the ORM model from the models file
-from app.models.jobs import JobPosting
+from backend.app.models.jobs import JobPosting
 # Import the Pydantic schemas from the schemas file
-from app.schemas.jobs import JobPostingCreate, JobPostingUpdate
+from backend.app.schemas.jobs import JobPostingCreate, JobPostingUpdate
 
 
 # CRUD Functions for the JobPosting model

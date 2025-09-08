@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 import uuid
 
 # Import dependencies and other project files
-from app.api.dependencies import get_db
-from app.crud import jobs as crud_jobs
-from app.schemas import jobs as schemas_jobs
+from backend.app.api.dependencies import get_db
+from backend.app.crud import jobs as crud_jobs
+from backend.app.schemas import jobs as schemas_jobs
 
 # Create an API router instance
 router = APIRouter(

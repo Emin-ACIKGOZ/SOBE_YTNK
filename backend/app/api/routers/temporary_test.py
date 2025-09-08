@@ -1,8 +1,8 @@
 # backend/app/api/routers/temporary_test.py
 
 from fastapi import APIRouter, Depends
-from app.api.dependencies import get_current_user
-from app.models.users import User
+from backend.app.api.dependencies import get_current_user
+from backend.app.models.users import User
 
 # This is a temporary router for testing purposes.
 router = APIRouter()

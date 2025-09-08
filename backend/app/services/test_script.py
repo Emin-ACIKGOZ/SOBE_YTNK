@@ -6,8 +6,8 @@ from io import BytesIO
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from app.services.llm_resume_parser import process_resume_with_llm
-from app.services.text_extractor import extract_text_from_pdf
+from backend.app.services.llm_resume_parser import process_resume_with_llm
+from backend.app.services.text_extractor import extract_text_from_pdf
 
 
 async def process_file(file_path):

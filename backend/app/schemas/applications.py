@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from enum import Enum
 
 # Import enums from your project structure
-from app.schemas.enums import ApplicationStatus
+from backend.app.schemas.enums import ApplicationStatus
 
 
 # --- NEW: Pydantic model for Language Skills ---

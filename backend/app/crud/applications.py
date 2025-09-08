@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 # Import your SQLAlchemy model
-from app.models.applications import Application
+from backend.app.models.applications import Application
 
 # Import your Pydantic schemas
-from app.schemas.applications import ApplicationCreate, ApplicationUpdate
+from backend.app.schemas.applications import ApplicationCreate, ApplicationUpdate
 
 # --- CRUD Operations for Application ---
 
