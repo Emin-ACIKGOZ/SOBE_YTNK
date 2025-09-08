@@ -34,12 +34,12 @@ SENTENCE_TRANSFORMER_MODEL = SentenceTransformer(
 )
 
 SENIORITY_EXPERIENCE_CURVE = {
-    SeniorityLevel.internship: {"midpoint": 0.5, "steepness": 3},
-    SeniorityLevel.entry_level: {"midpoint": 2, "steepness": 2},
-    SeniorityLevel.associate: {"midpoint": 4, "steepness": 1},
-    SeniorityLevel.mid_senior_level: {"midpoint": 7, "steepness": 0.8},
-    SeniorityLevel.director: {"midpoint": 12, "steepness": 0.6},
-    SeniorityLevel.executive: {"midpoint": 18, "steepness": 0.4},
+    SeniorityLevel.INTERNSHIP: {"midpoint": 0.5, "steepness": 3},
+    SeniorityLevel.ENTRY_LEVEL: {"midpoint": 2, "steepness": 2},
+    SeniorityLevel.ASSOCIATE: {"midpoint": 4, "steepness": 1},
+    SeniorityLevel.MID_SENIOR_LEVEL: {"midpoint": 7, "steepness": 0.8},
+    SeniorityLevel.DIRECTOR: {"midpoint": 12, "steepness": 0.6},
+    SeniorityLevel.EXECUTIVE: {"midpoint": 18, "steepness": 0.4},
 }
 
 EDUCATION_RELEVANCE_THRESHOLD = 0.6
@@ -261,7 +261,7 @@ if __name__ == "__main__":
         title="Kıdemli Python Geliştiricisi",
         company_name="Innovate Teknoloji A.Ş.",
         location="İstanbul",
-        seniority_level=SeniorityLevel.mid_senior_level,
+        seniority_level=SeniorityLevel.MID_SENIOR_LEVEL,
         employment_type=EmploymentType.FULL_TIME,
         description="""
         Innovate Teknoloji A.Ş. olarak, ekibimize katılacak dinamik ve deneyimli bir Kıdemli Python Geliştiricisi arıyoruz. Adayların Python'ın derinlemesine bilgisine ve mikroservis mimarileri ile çalışma tecrübesine sahip olması beklenmektedir.
