@@ -1,4 +1,9 @@
-# backend/app/schemas/tokens.py
+"""
+Pydantic schemas for API authentication tokens.
+
+This module defines the data models for the JWT tokens used for authentication,
+including the token itself and the data contained within its payload.
+"""
 
 from pydantic import BaseModel
 

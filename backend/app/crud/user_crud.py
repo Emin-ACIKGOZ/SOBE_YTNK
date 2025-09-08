@@ -1,8 +1,13 @@
-from sqlalchemy.orm import Session
-from backend.app.models.users import User
-from backend.app.schemas.users import UserCreate
-from backend.app.core.security import get_password_hash
+"""
+This module contains the CRUD (Create, Read, Update, Delete) operations
+for the User model, interacting with the database session.
+"""
+
 import uuid
+from sqlalchemy.orm import Session
+from backend.app.models.user_model import User
+from backend.app.schemas.user_schema import UserCreate
+from backend.app.core.security import get_password_hash
 
 
 def create_user(db: Session, user: UserCreate):

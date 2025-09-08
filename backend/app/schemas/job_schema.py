@@ -1,12 +1,17 @@
-# backend/app/schemas/jobs.py
+"""
+Pydantic schemas for validating job posting data.
 
-from typing import List, Optional
-from pydantic import BaseModel, Field
+This module defines the data models used for creating, updating, and
+retrieving job postings, ensuring data integrity and consistency.
+"""
+
 import uuid
 from datetime import datetime
+from typing import List, Optional
+from pydantic import BaseModel, Field, ConfigDict
 
 # Import enums from the centralized file
-from backend.app.schemas.enums import SeniorityLevel, EmploymentType
+from backend.app.schemas.enum_schema import SeniorityLevel, EmploymentType
 
 
 class JobPostingBase(BaseModel):
@@ -38,8 +43,6 @@ class JobPostingBase(BaseModel):
 class JobPostingCreate(JobPostingBase):
     """Schema for creating a new job posting."""
 
-    pass
-
 
 class JobPostingUpdate(BaseModel):
     """Schema for updating an existing job posting."""
@@ -63,9 +66,7 @@ class JobPosting(JobPostingBase):
     This is used for returning data from the API.
     """
 
+    model_config = ConfigDict(from_attributes=True)
     job_id: uuid.UUID
     posted_at: datetime
     is_active: bool
-
-    class Config:
-        from_attributes = True

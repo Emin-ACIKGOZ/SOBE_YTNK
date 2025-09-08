@@ -1,7 +1,12 @@
-from sqlalchemy.orm import Session
-from backend.app.models.jobs import JobPosting
-from backend.app.schemas.jobs import JobPostingCreate, JobPostingUpdate
+"""
+This module contains the CRUD (Create, Read, Update, Delete) operations
+for the JobPosting model, interacting with the database session.
+"""
+
 import uuid
+from sqlalchemy.orm import Session
+from backend.app.models.job_model import JobPosting
+from backend.app.schemas.job_schema import JobPostingCreate, JobPostingUpdate
 
 
 def create_job(db: Session, job: JobPostingCreate):

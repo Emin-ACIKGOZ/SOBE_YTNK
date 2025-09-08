@@ -1,7 +1,12 @@
-from sqlalchemy.orm import Session
-from backend.app.models.applicants import Applicant
-from backend.app.schemas.applicants import ApplicantCreate, ApplicantUpdate
+"""
+This module contains the CRUD (Create, Read, Update, Delete) operations
+for the Applicant model, interacting with the database session.
+"""
+
 import uuid
+from sqlalchemy.orm import Session
+from backend.app.models.applicant_model import Applicant
+from backend.app.schemas.applicant_schema import ApplicantCreate, ApplicantUpdate
 
 
 def create_applicant(db: Session, applicant: ApplicantCreate):

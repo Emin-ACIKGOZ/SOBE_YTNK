@@ -1,13 +1,21 @@
+"""
+API router for managing job postings.
+
+This module provides endpoints for creating, retrieving, updating,
+and soft-deleting job postings.
+"""
+
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from sqlalchemy.orm import Session
 import uuid
 
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from sqlalchemy.orm import Session
+
 # Import dependencies and other project files
-from backend.app.api.dependencies import get_db, get_current_active_user
-from backend.app.crud import jobs as crud_jobs
-from backend.app.schemas import jobs as schemas_jobs
-from backend.app.schemas.users import User as UserSchema
+from backend.app.api.api_dependencies import get_db, get_current_active_user
+from backend.app.crud import job_crud as crud_jobs
+from backend.app.schemas import job_schema as schemas_jobs
+from backend.app.schemas.user_schema import User as UserSchema
 
 # Create an API router instance with a prefix and tags
 router = APIRouter(

@@ -1,12 +1,18 @@
-import fitz  # PyMuPDF
+"""
+Service module for extracting text from a PDF file using PyMuPDF.
+It demonstrates synchronous I/O in an asynchronous environment by offloading
+the PyMuPDF text extraction to a threadpool.
+"""
+
 import logging
-from io import BytesIO
-from starlette.concurrency import run_in_threadpool
 import asyncio
-import re
-import os
 import tkinter as tk
 from tkinter import filedialog
+from io import BytesIO
+
+import fitz  # PyMuPDF
+from starlette.concurrency import run_in_threadpool
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +53,7 @@ def _extract_text_sync(pdf_file: BytesIO) -> str:
 
     except Exception as e:
         logger.error(
-            f"An unexpected error occurred during PyMuPDF text extraction: {e}"
+            "An unexpected error occurred during PyMuPDF text extraction: %s", e
         )
         return ""
 

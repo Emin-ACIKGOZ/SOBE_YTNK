@@ -1,11 +1,19 @@
+"""
+API router for managing applicants.
+
+This module defines the API endpoints for creating, retrieving,
+updating, and deleting applicant data.
+"""
+
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 import uuid
 
-from backend.app.api.dependencies import get_db
-from backend.app.crud import applicants as crud_applicants
-from backend.app.schemas import applicants as schemas_applicants
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from backend.app.api.api_dependencies import get_db
+from backend.app.crud import applicant_crud as crud_applicants
+from backend.app.schemas import applicant_schema as schemas_applicants
 
 router = APIRouter(prefix="/applicants", tags=["applicants"])
 

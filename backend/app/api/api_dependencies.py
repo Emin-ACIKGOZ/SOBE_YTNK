@@ -1,4 +1,9 @@
-# backend/app/api/dependencies.py
+"""
+Dependency functions for the API.
+
+This module provides common dependencies for FastAPI endpoints, such as
+database session management and user authentication.
+"""
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -6,9 +11,9 @@ from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from backend.app.core.config import settings
 from backend.app.database.session import SessionLocal
-from backend.app.models.users import User
-from backend.app.schemas.tokens import TokenData
-from backend.app.crud.users import (
+from backend.app.models.user_model import User
+from backend.app.schemas.token_schema import TokenData
+from backend.app.crud.user_crud import (
     get_user_by_username,
 )  # We will update this CRUD function to be more generic
 
@@ -55,8 +60,8 @@ def get_current_user(
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
+    except JWTError as exc:
+        raise credentials_exception from exc
 
     # Retrieve the user from the database
     user = get_user_by_username(db, username=token_data.username)

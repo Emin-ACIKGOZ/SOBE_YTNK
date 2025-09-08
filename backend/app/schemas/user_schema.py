@@ -1,8 +1,13 @@
-# backend/app/schemas/users.py
+"""
+Pydantic schemas for user-related data.
+
+This module defines the data models for user creation, login, and
+database retrieval, ensuring data integrity and validation.
+"""
 
 import uuid
-from pydantic import BaseModel, EmailStr, Field
-from backend.app.schemas.enums import UserRole
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from backend.app.schemas.enum_schema import UserRole
 
 
 class UserBase(BaseModel):
@@ -32,14 +37,12 @@ class User(UserBase):
 
     id: uuid.UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserLogin(BaseModel):
     """
     Schema for user login credentials.
-    Uses username instead of email for login.
     """
 
     username: str

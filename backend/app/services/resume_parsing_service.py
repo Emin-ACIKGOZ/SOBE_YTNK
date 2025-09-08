@@ -1,3 +1,12 @@
+"""
+Service module for parsing resume text using an external LLM API.
+
+This module contains functions to extract structured data such as contact
+information, work history, education, and skills from raw resume text.
+It uses asynchronous calls to a third-party LLM and handles common issues
+like malformed JSON output and API request failures.
+"""
+
 import logging
 from math import floor
 import uuid
@@ -11,8 +20,8 @@ from pydantic import BaseModel
 import json_repair
 import requests
 
-from backend.app.schemas.applicants import Applicant
-from backend.app.schemas.applications import (
+from backend.app.schemas.applicant_schema import Applicant
+from backend.app.schemas.application_schema import (
     Application,
     ApplicationStatus,
     Certification,
@@ -130,7 +139,7 @@ def _calculate_total_experience(work_history: List[WorkExperience]) -> int:
                 else:
                     current_date = current_date.replace(month=current_date.month + 1)
         except Exception as e:
-            print(f"Error processing work experience date: {e}")
+            print("Error processing work experience date: %s", e)
             continue
 
     total_months = len(all_month_years)
@@ -142,71 +151,78 @@ def _get_llm_payload(text: str) -> dict:
     Constructs the correct request payload for the LLM API,
     with a prompt that no longer requests the LLM to reproduce the raw text.
     """
-    refined_prompt = f"""
-                Extract the following information from the provided resume text. 
-                The resume may be in either English or Turkish. Return the output as a single, strict JSON object. 
-                Do not include any additional text, explanations, or markdown fences (e.g., ```json).
-
-                **Instructions:**
-                - For any field where information is not found in the resume, the value must be set to `null`.
-                - **For all dates (start_date, end_date):**
-                    - If the date indicates the position is ongoing i.e. "Present" (or "devam ediyor"), write "present" as the date.
-                    - If only the year is available (e.g., "2016"), use `01/yyyy` (e.g., "01/2016").
-                    - If the exact date is found, use the `mm/yyyy` format (e.g., "03/2006").
-                - The `resume_language` field must be `'en'` for English or `'tr'` for Turkish, based on the primary language of the resume.
-
-                {{
-                  "first_name": "string",
-                  "last_name": "string",
-                  "email": "string | null",
-                  "phone_number": "string | null",
-                  "linkedin_profile_url": "string | null",
-                  "github_profile_url": "string | null",
-                  "resume_language": "string",
-                  "work_history": [
-                    {{
-                      "job_title": "string",
-                      "company": "string",
-                      "start_date": "mm/yyyy",
-                      "end_date": "mm/yyyy",
-                      "description": "string | null"
-                    }}
-                  ],
-                  "education_history": [
-                    {{
-                      "degree": "string",
-                      "institution": "string",
-                      "start_date": "mm/yyyy",
-                      "end_date": "mm/yyyy",
-                      "location": "string | null"
-                    }}
-                  ],
-                  "parsed_skills": [ "string" ],
-                  "certifications": [
-                    {{
-                      "name": "string",
-                      "year_issued": "string",
-                      "issuing_organization": "string | null"
-                    }}
-                  ],
-                  "languages": [
-                    {{
-                      "name": "string",
-                      "level": "string | null"
-                    }}
-                  ]
-                }}
-
-                **Resume Text:**
-                {text}
-                """
+    refined_prompt = (
+        "Extract the following information from the provided resume text. "
+        "The resume may be in either English or Turkish. Return the output as "
+        "a single, strict JSON object. Do not include any additional text, "
+        "explanations, or markdown fences (e.g., ```json).\n\n"
+        "**Instructions:**\n"
+        "- For any field where information is not found in the resume, the "
+        "value must be set to `null`.\n"
+        "- **For all dates (start_date, end_date):**\n"
+        '- If the date indicates the position is ongoing i.e. "Present" (or '
+        '"devam ediyor"), write "present" as the date.\n'
+        '- If only the year is available (e.g., "2016"), use `01/yyyy` '
+        '(e.g., "01/2016").\n'
+        "- If the exact date is found, use the `mm/yyyy` format (e.g., "
+        '"03/2006").\n'
+        "- The `resume_language` field must be `'en'` for English or `'tr'` "
+        "for Turkish, based on the primary language of the resume.\n\n"
+        "{\n"
+        '  "first_name": "string",\n'
+        '  "last_name": "string",\n'
+        '  "email": "string | null",\n'
+        '  "phone_number": "string | null",\n'
+        '  "linkedin_profile_url": "string | null",\n'
+        '  "github_profile_url": "string | null",\n'
+        '  "resume_language": "string",\n'
+        '  "work_history": [\n'
+        "    {\n"
+        '      "job_title": "string",\n'
+        '      "company": "string",\n'
+        '      "start_date": "mm/yyyy",\n'
+        '      "end_date": "mm/yyyy",\n'
+        '      "description": "string | null"\n'
+        "    }\n"
+        "  ],\n"
+        '  "education_history": [\n'
+        "    {\n"
+        '      "degree": "string",\n'
+        '      "institution": "string",\n'
+        '      "start_date": "mm/yyyy",\n'
+        '      "end_date": "mm/yyyy",\n'
+        '      "location": "string | null"\n'
+        "    }\n"
+        "  ],\n"
+        '  "parsed_skills": [ "string" ],\n'
+        '  "certifications": [\n'
+        "    {\n"
+        '      "name": "string",\n'
+        '      "year_issued": "string",\n'
+        '      "issuing_organization": "string | null"\n'
+        "    }\n"
+        "  ],\n"
+        '  "languages": [\n'
+        "    {\n"
+        '      "name": "string",\n'
+        '      "level": "string | null"\n'
+        "    }\n"
+        "  ]\n"
+        "}\n\n"
+        "**Resume Text:**\n" + text
+    )
 
     data = {
         "model": "qwen2.5-coder:32b",
         "messages": [
             {
                 "role": "system",
-                "content": "You are a resume parser. Your task is to extract all relevant information from the following raw resume text. The output must be a single, valid JSON object that adheres to the specified schema, without any additional text or formatting (like '```json').",
+                "content": (
+                    "You are a resume parser. Your task is to extract all relevant "
+                    "information from the following raw resume text. The output must "
+                    "be a single, valid JSON object that adheres to the specified "
+                    "schema, without any additional text or formatting (like '```json')."
+                ),
             },
             {"role": "user", "content": refined_prompt},
         ],
@@ -230,7 +246,7 @@ def _repair_llm_json(output_str: str) -> Optional[dict]:
         return data
     except Exception as e:
         # If the repair process fails, return None.
-        logger.error(f"JSON repair failed: {e}")
+        logger.error("JSON repair failed: %s", e)
         return None
 
 
@@ -238,12 +254,14 @@ def _process_work_history_dates(
     work_history: List[WorkExperience],
 ) -> List[WorkExperience]:
     """
-    Post-processes the work history list to convert 'present' dates into 'mm/yyyy' format.
+    Post-processes the work history list to convert 'present' dates into
+    'mm/yyyy' format.
     """
     processed_history = []
     current_month_year = datetime.now().strftime("%m/%Y")
     for job in work_history:
-        # Check if the start date is 'present', which should not happen based on prompt, but as a safeguard
+        # Check if the start date is 'present', which should not happen
+        # based on prompt, but as a safeguard
         if job.start_date and job.start_date.lower().strip() == "present":
             start_date_str = current_month_year
         else:
@@ -270,8 +288,9 @@ async def process_resume_with_llm(
     raw_text: str, resume_file_url: str
 ) -> tuple[Optional[Applicant], Optional[Application]]:
     """
-    Uses an LLM to process raw resume text and return structured Applicant and Application data.
-    Updated to handle the new LLM output structure and manage the raw text locally.
+    Uses an LLM to process raw resume text and return structured Applicant
+    and Application data. Updated to handle the new LLM output structure and
+    manage the raw text locally.
     """
     payload = _get_llm_payload(raw_text)
 
@@ -283,7 +302,7 @@ async def process_resume_with_llm(
                 "Authorization": f"Bearer {API_KEY}",
             }
             logger.info("Attempting to connect to: %s", API_URL)
-            response = requests.post(API_URL, headers=headers, json=payload)
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=10)
             response.raise_for_status()
 
             llm_output_json = response.json()

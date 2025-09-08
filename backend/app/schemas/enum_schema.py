@@ -1,4 +1,10 @@
-# backend/app/schemas/enums.py
+"""
+This module defines a set of extensible Enum classes for common job application fields.
+
+These enums provide a clean and type-safe way to handle fixed sets of choices
+for application statuses, user roles, employment types, seniority levels,
+and education levels.
+"""
 
 from enum import Enum as PyEnum
 import enum
@@ -25,27 +31,29 @@ class UserRole(str, PyEnum):
     APPLICANT = "applicant"
 
 
-class EmploymentType(PyEnum):
+class EmploymentType(str, PyEnum):
     """Defines the types of employment."""
 
-    full_time = "Full-time"
-    part_time = "Part-time"
-    contract = "Contract"
-    internship = "Internship"
+    FULL_TIME = "Full-time"
+    PART_TIME = "Part-time"
+    CONTRACT = "Contract"
+    INTERNSHIP = "Internship"
 
 
-class SeniorityLevel(PyEnum):
+class SeniorityLevel(str, PyEnum):
     """Defines the seniority level of the position."""
 
-    internship = "Internship"
-    entry_level = "Entry Level"
-    associate = "Associate"
-    mid_senior_level = "Mid-Senior Level"
-    director = "Director"
-    executive = "Executive"
+    INTERNSHIP = "Internship"
+    ENTRY_LEVEL = "Entry Level"
+    ASSOCIATE = "Associate"
+    MID_SENIOR_LEVEL = "Mid-Senior Level"
+    DIRECTOR = "Director"
+    EXECUTIVE = "Executive"
 
 
 class EducationLevel(str, enum.Enum):
+    """Defines the level of education."""
+
     NONE = "None"
     HIGH_SCHOOL = "High School"
     ASSOCIATE = "Associate"

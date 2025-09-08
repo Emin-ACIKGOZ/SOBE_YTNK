@@ -4,10 +4,10 @@ import os
 from sqlalchemy.orm import Session
 from app.database.base import Base
 from app.database.session import engine, SessionLocal
-from app.crud.users import create_user
-from app.services.auth import create_password_hash
-from app.models.users import User
-from app.schemas.enums import UserRole
+from backend.app.crud.user_crud import create_user
+from backend.app.services.auth_service import create_password_hash
+from backend.app.models.user_model import User
+from backend.app.schemas.enum_schema import UserRole
 import uuid
 
 # This script is intended to be run inside the Docker container

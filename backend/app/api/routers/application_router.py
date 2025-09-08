@@ -1,11 +1,23 @@
+"""
+API router for managing job applications.
+
+This module defines the API endpoints for creating, retrieving,
+and updating job application data. It also includes endpoints
+to manage application status and retrieve applications by applicant.
+"""
+
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 import uuid
 
-from backend.app.api.dependencies import get_db
-from backend.app.crud import applications as crud_applications
-from backend.app.schemas import applications as schemas_applications
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from backend.app.api.api_dependencies import get_db, get_current_active_user
+from backend.app.crud import application_crud as crud_applications
+from backend.app.schemas import application_schema as schemas_applications
+from backend.app.schemas.user_schema import User as UserSchema
+from backend.app.schemas.enum_schema import ApplicationStatus
+
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -16,18 +28,22 @@ router = APIRouter(prefix="/applications", tags=["applications"])
     status_code=status.HTTP_201_CREATED,
 )
 def create_new_application(
-    application: schemas_applications.ApplicationCreate, db: Session = Depends(get_db)
+    application: schemas_applications.ApplicationCreate,
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
 ):
     """
     Creates a new application for an applicant and a job.
     """
-    # Optional: You can add logic here to ensure the applicant and job exist
-    # before creating the application.
     return crud_applications.create_application(db=db, application=application)
 
 
 @router.get("/{application_id}", response_model=schemas_applications.Application)
-def read_application(application_id: uuid.UUID, db: Session = Depends(get_db)):
+def read_application(
+    application_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
+):
     """
     Retrieves a single application by its ID.
     """
@@ -44,7 +60,9 @@ def read_application(application_id: uuid.UUID, db: Session = Depends(get_db)):
     response_model=List[schemas_applications.Application],
 )
 def read_applications_by_applicant(
-    applicant_id: uuid.UUID, db: Session = Depends(get_db)
+    applicant_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
 ):
     """
     Retrieves a list of applications for a specific applicant.
@@ -58,8 +76,9 @@ def read_applications_by_applicant(
 @router.put("/{application_id}/status", response_model=schemas_applications.Application)
 def update_application_status(
     application_id: uuid.UUID,
-    application_in: schemas_applications.ApplicationUpdate,
+    new_status: ApplicationStatus,
     db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
 ):
     """
     Updates the status of an application.
@@ -70,5 +89,5 @@ def update_application_status(
     if not db_application:
         raise HTTPException(status_code=404, detail="Application not found")
     return crud_applications.update_application_status(
-        db=db, db_application=db_application, status=application_in.status
+        db=db, db_application=db_application, status=new_status.value
     )

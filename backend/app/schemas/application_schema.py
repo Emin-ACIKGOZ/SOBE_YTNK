@@ -1,21 +1,36 @@
+"""
+Pydantic schemas for the Application model and its nested components.
+
+This module defines the data models for validating and structuring
+job application data, including nested schemas for work experience,
+education, skills, and certifications.
+"""
+
 import uuid
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
-from enum import Enum
 
 # Import enums from your project structure
-from backend.app.schemas.enums import ApplicationStatus
+from backend.app.schemas.enum_schema import ApplicationStatus
 
 
-# --- NEW: Pydantic model for Language Skills ---
+# --- Pydantic model for Language Skills ---
 class LanguageSkill(BaseModel):
+    """
+    Schema for a language skill entry.
+    """
+
     name: str
     level: Optional[str] = None
 
 
 # --- Pydantic model for Certifications ---
 class Certification(BaseModel):
+    """
+    Schema for a certification entry.
+    """
+
     name: str
     year_issued: Optional[str] = None
     issuing_organization: Optional[str] = None
@@ -42,7 +57,7 @@ class EducationHistory(BaseModel):
     degree: str
     institution: str
     start_date: str
-    end_date: str
+    end_date: Optional[str] = None
     location: Optional[str] = None
 
 
@@ -53,10 +68,9 @@ class ApplicationBase(BaseModel):
     submitted or extracted and stored in the database.
     """
 
-    resume_file_url: str
-    resume_language: str
+    resume_language: Optional[str] = None  # Make this optional in case LLM fails
 
-    total_years_experience: int = 0
+    total_years_experience: Optional[int] = None  # Make this optional
     work_history: Optional[List[WorkExperience]] = []
     education_history: Optional[List[EducationHistory]] = []
 
@@ -64,7 +78,9 @@ class ApplicationBase(BaseModel):
     certifications: Optional[List[Certification]] = []
     languages: Optional[List[LanguageSkill]] = []
 
-    parsed_resume_data: Any
+    parsed_resume_data: Optional[str] = None  # Change type to string from Any
+    status: Optional[ApplicationStatus] = ApplicationStatus.RECEIVED
+    ranking_score: Optional[float] = None
 
 
 class ApplicationCreate(ApplicationBase):
@@ -75,6 +91,7 @@ class ApplicationCreate(ApplicationBase):
 
     applicant_id: uuid.UUID
     job_id: Optional[uuid.UUID] = None
+    resume_file_path: str
 
 
 class ApplicationUpdate(BaseModel):
@@ -98,3 +115,4 @@ class Application(ApplicationBase):
     job_id: Optional[uuid.UUID] = None
     status: ApplicationStatus
     application_date: datetime
+    resume_file_path: str

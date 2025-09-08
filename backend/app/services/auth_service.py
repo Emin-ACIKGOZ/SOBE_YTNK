@@ -1,7 +1,12 @@
-# backend/app/services/auth.py
+"""
+Utilities for password hashing, verification, and JWT token management.
+
+This module provides helper functions to securely handle user passwords
+and to create and manage JSON Web Tokens for authentication.
+"""
 
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
+from jose import jwt
 from passlib.context import CryptContext
 from backend.app.core.config import settings
 

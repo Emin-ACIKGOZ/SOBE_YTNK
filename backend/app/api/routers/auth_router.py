@@ -1,16 +1,24 @@
+"""
+API router for user authentication and registration.
+
+This module handles user login to issue access tokens and provides an
+endpoint for new user registration.
+"""
+
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
 
-from backend.app.api.dependencies import get_db
-from backend.app.crud.users import get_user_by_username
+from backend.app.api.api_dependencies import get_db
+from backend.app.crud.user_crud import get_user_by_username
 from backend.app.core.security import verify_password
 from backend.app.core.config import settings
-from backend.app.schemas.tokens import Token
-from backend.app.services.auth import create_access_token
-from backend.app.schemas.users import UserCreate, User as UserSchema
-from backend.app.crud import users as crud_users
+from backend.app.schemas.token_schema import Token
+from backend.app.services.auth_service import create_access_token
+from backend.app.schemas.user_schema import UserCreate, User as UserSchema
+from backend.app.crud import user_crud as crud_users
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

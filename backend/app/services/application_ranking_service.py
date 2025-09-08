@@ -1,15 +1,23 @@
-# This module contains a set of functions to rank job applications based on a
-# weighted ensemble of multiple scoring algorithms.
+"""
+This service module contains a set of functions to rank job applications based on a
+weighted ensemble of multiple scoring algorithms.
+"""
 
 import math
 import uuid
-from typing import Dict, Set
+from typing import Dict
 from datetime import datetime, timedelta
-from backend.app.services.application_generator import generate_test_applications
 from sentence_transformers import SentenceTransformer, util
-from backend.app.schemas.enums import EmploymentType, SeniorityLevel, EducationLevel
-from backend.app.schemas.jobs import JobPosting
-from backend.app.schemas.applications import Application
+
+
+from backend.app.schemas.job_schema import JobPosting
+from backend.app.schemas.application_schema import Application
+from backend.app.services.dummy_application_generator import generate_test_applications
+from backend.app.schemas.enum_schema import (
+    EmploymentType,
+    SeniorityLevel,
+    EducationLevel,
+)
 
 # --- Configuration Data Tables ---
 
@@ -254,7 +262,7 @@ if __name__ == "__main__":
         company_name="Innovate Teknoloji A.Ş.",
         location="İstanbul",
         seniority_level=SeniorityLevel.mid_senior_level,
-        employment_type=EmploymentType.full_time,
+        employment_type=EmploymentType.FULL_TIME,
         description="""
         Innovate Teknoloji A.Ş. olarak, ekibimize katılacak dinamik ve deneyimli bir Kıdemli Python Geliştiricisi arıyoruz. Adayların Python'ın derinlemesine bilgisine ve mikroservis mimarileri ile çalışma tecrübesine sahip olması beklenmektedir.
         """,

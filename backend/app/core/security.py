@@ -1,3 +1,10 @@
+"""
+Utilities for password hashing and verification.
+
+This module provides functions to securely hash passwords using the bcrypt
+algorithm and to verify a plain-text password against a stored hash.
+"""
+
 from passlib.context import CryptContext
 
 # Create a CryptContext instance with the desired hashing algorithm

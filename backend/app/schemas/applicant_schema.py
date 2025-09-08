@@ -1,3 +1,10 @@
+"""
+Pydantic schemas for validating Applicant data.
+
+This module defines the data models used for creating, updating, and
+retrieving Applicant information, ensuring data integrity and consistency.
+"""
+
 import uuid
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
@@ -21,6 +28,7 @@ class ApplicantBase(BaseModel):
 class ApplicantCreate(ApplicantBase):
     """
     Pydantic schema for creating a new Applicant.
+
     Inherits from ApplicantBase.
     """
 
@@ -28,6 +36,7 @@ class ApplicantCreate(ApplicantBase):
 class ApplicantUpdate(BaseModel):
     """
     Pydantic schema for updating an existing Applicant.
+
     All fields are optional to allow for partial updates.
     """
 

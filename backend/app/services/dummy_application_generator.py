@@ -1,5 +1,5 @@
 """
-This module contains functions to generate a list of applications from
+This service module contains functions to generate a list of applications from
 random pools of information for testing the ranking system.
 """
 
@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import List
 
-from backend.app.schemas.applications import (
+from backend.app.schemas.application_schema import (
     WorkExperience,
     EducationHistory,
     Certification,
@@ -16,8 +16,8 @@ from backend.app.schemas.applications import (
     Application,
     ApplicationStatus,
 )
-from backend.app.schemas.applicants import Applicant
-from backend.app.services.llm_resume_parser import _calculate_total_experience
+from backend.app.schemas.applicant_schema import Applicant
+from backend.app.services.resume_parsing_service import _calculate_total_experience
 
 # --- English Resume Data Pools ---
 EN_FIRST_NAMES = [
@@ -557,10 +557,10 @@ def generate_work_history(is_turkish: bool = False) -> List[WorkExperience]:
     current_year = datetime.now().year
 
     end_year = current_year
-    for i in range(num_jobs):
+    for _ in range(num_jobs):
         start_year = end_year - random.randint(1, 5)
         start_date = f"01/{start_year}"
-        end_date = "present" if i == 0 and random.random() > 0.5 else f"01/{end_year}"
+        end_date = "present" if _ == 0 and random.random() > 0.5 else f"01/{end_year}"
 
         history.append(
             WorkExperience(
@@ -654,11 +654,17 @@ def generate_random_application(
     application_id = uuid.uuid4()
     current_time = datetime.now()
 
+    email_local_part = (
+        f"{first_name.lower()}{last_name.lower()}" f"{random.randint(1, 99)}"
+    )
+    email_domain = random.choice(email_domains)
+    email_tld = random.choice(["com", "org", "net"])
+
     applicant = Applicant(
         applicant_id=applicant_id,
         first_name=first_name,
         last_name=last_name,
-        email=f"{first_name.lower()}{last_name.lower()}{random.randint(1, 99)}@{random.choice(email_domains)}.{random.choice(['com', 'org', 'net'])}",
+        email=f"{email_local_part}@{email_domain}.{email_tld}",
         phone_number=(
             f"+90{''.join(random.choices('0123456789', k=10))}" if is_turkish else None
         ),
@@ -748,7 +754,7 @@ def generate_test_applications(
 # Example usage
 if __name__ == "__main__":
     test_apps = generate_test_applications(10)
-    for i, app in enumerate(test_apps):
-        print(f"--- Generated Application {i+1} ({app.resume_language}) ---")
-        print(app.model_dump_json(indent=2))
+    for i, generated_app in enumerate(test_apps):
+        print(f"--- Generated Application {i+1} ({generated_app.resume_language}) ---")
+        print(generated_app.model_dump_json(indent=2))
         print("\n")
