@@ -1,0 +1,23 @@
+# Ignore Python-specific build artifacts
+__pycache__/
+*.pyc
+
+# Ignore editor and environment-specific files
+.venv/
+.idea/
+.vscode/
+
+# Ignore local resume storage
+resumes/
+
+# Ignore files related to Docker itself
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Ignore Git files
+.git/
+.gitignore
+
+# Ignore any local environment variables file
+.env
