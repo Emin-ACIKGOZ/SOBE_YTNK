@@ -13,9 +13,7 @@ def create_applicant(db: Session, applicant: ApplicantCreate):
     """
     Creates a new applicant in the database.
     """
-    db_applicant = Applicant(
-        applicant_id=uuid.uuid4(), **applicant.model_dump(exclude_unset=True)
-    )
+    db_applicant = Applicant(**applicant.model_dump(exclude_unset=True))
     db.add(db_applicant)
     db.commit()
     db.refresh(db_applicant)
@@ -47,12 +45,12 @@ def update_applicant(
     db: Session, db_applicant: Applicant, applicant_in: ApplicantUpdate
 ):
     """
-    Updates an existing applicant's information.
+    Updates an existing applicant's information using a single query.
     """
     update_data = applicant_in.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_applicant, key, value)
-    db.add(db_applicant)
+    db.query(Applicant).filter(
+        Applicant.applicant_id == db_applicant.applicant_id
+    ).update(update_data, synchronize_session="fetch")
     db.commit()
     db.refresh(db_applicant)
     return db_applicant

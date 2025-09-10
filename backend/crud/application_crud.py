@@ -16,7 +16,7 @@ def create_application(db: Session, application: ApplicationCreate) -> Applicati
     """
     Creates a new application record along with its nested work and education history.
     """
-    # Create the main Application model instance
+    # Create the main Application model instance, converting nested Pydantic models
     db_application = Application(
         job_id=application.job_id,
         applicant_id=application.applicant_id,
@@ -24,15 +24,16 @@ def create_application(db: Session, application: ApplicationCreate) -> Applicati
         resume_language=application.resume_language,
         total_years_experience=application.total_years_experience,
         parsed_skills=application.parsed_skills,
-        certifications=application.certifications,
-        languages=application.languages,
+        # Convert Pydantic objects to dictionaries for JSONB serialization
+        certifications=[c.model_dump() for c in application.certifications],
+        languages=[l.model_dump() for l in application.languages],
         parsed_resume_data=application.parsed_resume_data,
         status=application.status,
     )
 
     # Convert Pydantic WorkExperienceCreate schemas to SQLAlchemy models
     work_experiences = [
-        WorkExperience(**we.model_dump()) for we in application.work_history
+        WorkExperience(**we.model_dump()) for we in application.work_experience
     ]
     db_application.work_experience = work_experiences
 

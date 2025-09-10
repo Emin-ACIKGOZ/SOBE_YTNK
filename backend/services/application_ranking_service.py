@@ -7,6 +7,9 @@ import math
 import uuid
 from typing import Dict
 from datetime import datetime, timedelta
+
+# Import the Date class from the datetime module
+from datetime import date
 from sentence_transformers import SentenceTransformer, util
 
 
@@ -135,7 +138,7 @@ def score_by_relevant_experience(job: JobPosting, resume: Application) -> float:
         job_title, convert_to_tensor=True
     )
 
-    for work_exp in resume.work_history:
+    for work_exp in resume.work_experience:
         if not work_exp.job_title:
             continue
 
@@ -160,12 +163,11 @@ def score_by_education_fit(job: JobPosting, resume: Application) -> float:
 
     education_score = 0.0
     for edu in resume.education_history:
-        try:
-            edu_end_date = datetime.strptime(edu.end_date, "%m/%Y")
-            edu_start_date = datetime.strptime(edu.start_date, "%m/%Y")
-            duration_years = (edu_end_date - edu_start_date).days / 365.25
-        except (ValueError, TypeError):
-            continue
+        # The dates are now date objects, so we convert them to datetime for subtraction
+        edu_start_date = datetime.combine(edu.start_date, datetime.min.time())
+        edu_end_date = datetime.combine(edu.end_date, datetime.min.time())
+
+        duration_years = (edu_end_date - edu_start_date).days / 365.25
 
         edu_embedding = SENTENCE_TRANSFORMER_MODEL.encode(
             f"{edu.degree} {edu.institution}", convert_to_tensor=True
@@ -193,25 +195,23 @@ def score_by_time_decay(resume: Application) -> float:
     total_duration_years = 0
     decay_rate = 0.15
 
-    for job_experience in resume.work_history:
-        try:
-            start_date = datetime.strptime(job_experience.start_date, "%m/%Y")
-            if job_experience.end_date and job_experience.end_date.lower() != "present":
-                end_date = datetime.strptime(job_experience.end_date, "%m/%Y")
-            else:
-                end_date = reference_date
+    for job_experience in resume.work_experience:
+        # The dates are now date objects, we convert to datetime for calculation
+        start_date = datetime.combine(job_experience.start_date, datetime.min.time())
+        if job_experience.end_date:
+            end_date = datetime.combine(job_experience.end_date, datetime.min.time())
+        else:
+            end_date = reference_date
 
-            duration_days = (end_date - start_date).days
-            duration_years = duration_days / 365.25
-            total_duration_years += duration_years
+        duration_days = (end_date - start_date).days
+        duration_years = duration_days / 365.25
+        total_duration_years += duration_years
 
-            midpoint_date = start_date + timedelta(days=duration_days / 2)
-            years_ago = (reference_date - midpoint_date).days / 365.25
+        midpoint_date = start_date + timedelta(days=duration_days / 2)
+        years_ago = (reference_date - midpoint_date).days / 365.25
 
-            recency_multiplier = math.exp(-decay_rate * years_ago)
-            total_recency_score += duration_years * recency_multiplier
-        except (ValueError, TypeError):
-            continue
+        recency_multiplier = math.exp(-decay_rate * years_ago)
+        total_recency_score += duration_years * recency_multiplier
 
     return (
         total_recency_score / total_duration_years if total_duration_years > 0 else 0.0

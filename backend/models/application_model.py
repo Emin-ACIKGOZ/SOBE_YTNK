@@ -59,7 +59,7 @@ class Application(Base):
         nullable=False,
         default=ApplicationStatus.RECEIVED,
     )
-    resume_file_path = Column(String, nullable=False)
+    resume_file_path = Column(String, nullable=True)
     resume_language = Column(String, nullable=True)
     total_years_experience = Column(Integer, nullable=True)
     parsed_skills = Column(ARRAY(String), nullable=True)

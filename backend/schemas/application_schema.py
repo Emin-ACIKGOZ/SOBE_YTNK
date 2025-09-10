@@ -48,7 +48,7 @@ class ApplicationBase(BaseModel):
     certifications: Optional[List[Certification]] = []
     languages: Optional[List[LanguageSkill]] = []
     parsed_resume_data: Optional[str] = None
-    status: Optional[ApplicationStatus] = ApplicationStatus.RECEIVED
+    status: ApplicationStatus = ApplicationStatus.RECEIVED
     ranking_score: Optional[float] = None
 
 
@@ -61,8 +61,8 @@ class ApplicationCreate(ApplicationBase):
 
     applicant_id: uuid.UUID
     job_id: Optional[uuid.UUID] = None
-    resume_file_path: str
-    work_history: Optional[List[WorkExperienceCreate]] = []
+    resume_file_path: Optional[str] = None
+    work_experience: Optional[List[WorkExperienceCreate]] = []
     education_history: Optional[List[EducationHistoryCreate]] = []
 
 
@@ -87,6 +87,6 @@ class Application(ApplicationBase):
     job_id: Optional[uuid.UUID] = None
     status: ApplicationStatus
     application_date: datetime
-    resume_file_path: str
-    work_history: Optional[List[WorkExperience]] = []
+    resume_file_path: Optional[str] = None
+    work_experience: Optional[List[WorkExperience]] = []
     education_history: Optional[List[EducationHistory]] = []

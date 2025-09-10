@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from backend.database.base import Base
@@ -14,8 +14,8 @@ class WorkExperience(Base):
         application_id (uuid.UUID): Foreign key linking to the parent application.
         job_title (str): The job title.
         company (str): The company name.
-        start_date (str): The start date of the job.
-        end_date (str): The end date of the job.
+        start_date (Date): The start date of the job.
+        end_date (Date): The end date of the job.
         description (str): A description of the job responsibilities.
         application (relationship): Relationship back to the parent Application model.
     """
@@ -30,8 +30,8 @@ class WorkExperience(Base):
     )
     job_title = Column(String, nullable=False)
     company = Column(String, nullable=False)
-    start_date = Column(String, nullable=False)
-    end_date = Column(String, nullable=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
     description = Column(String, nullable=True)
 
     # Relationship to the parent Application model

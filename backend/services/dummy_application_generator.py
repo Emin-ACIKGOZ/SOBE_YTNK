@@ -5,7 +5,7 @@ random pools of information for testing the ranking system.
 
 import random
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from typing import List
 
 from backend.schemas.application_schema import (
@@ -551,7 +551,7 @@ TR_LANGUAGES = [
 ]
 
 
-def generate_work_history(
+def generate_work_experience(
     application_id: uuid.UUID, is_turkish: bool = False
 ) -> List[WorkExperience]:
     """Generates a list of random work experiences."""
@@ -564,8 +564,15 @@ def generate_work_history(
     end_year = current_year
     for _ in range(num_jobs):
         start_year = end_year - random.randint(1, 5)
-        start_date = f"01/{start_year}"
-        end_date = "present" if _ == 0 and random.random() > 0.5 else f"01/{end_year}"
+        # Generate a datetime.date object
+        start_date_obj = date(start_year, random.randint(1, 12), 1)
+
+        end_date_obj = None
+        # Set end_date to a date object or None for 'present'
+        if _ == 0 and random.random() > 0.5:
+            end_date_obj = None
+        else:
+            end_date_obj = date(end_year, random.randint(1, 12), 1)
 
         history.append(
             WorkExperience(
@@ -573,8 +580,8 @@ def generate_work_history(
                 application_id=application_id,
                 job_title=random.choice(job_titles),
                 company=random.choice(companies),
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_date_obj,
+                end_date=end_date_obj,
                 description=None,
             )
         )
@@ -589,14 +596,17 @@ def generate_education_history(
     degrees = TR_DEGREES if is_turkish else EN_DEGREES
     institutions = TR_INSTITUTIONS if is_turkish else EN_INSTITUTIONS
 
+    start_year = random.randint(1995, 2020)
+    end_year = random.randint(2021, 2025)
+
     return [
         EducationHistory(
             id=uuid.uuid4(),
             application_id=application_id,
             degree=random.choice(degrees),
             institution=random.choice(institutions),
-            start_date=f"09/{random.randint(1995, 2020)}",
-            end_date=f"06/{random.randint(2021, 2025)}",
+            start_date=date(start_year, random.randint(1, 12), 1),
+            end_date=date(end_year, random.randint(1, 12), 1),
             location=None,
         )
     ]
@@ -659,7 +669,7 @@ def generate_random_application(
     application_id = uuid.uuid4()
     current_time = datetime.now()
 
-    work_history = generate_work_history(application_id, is_turkish)
+    work_experience = generate_work_experience(application_id, is_turkish)
     education_history = generate_education_history(application_id, is_turkish)
     parsed_skills = generate_parsed_skills(is_turkish)
     certifications = generate_certifications(is_turkish)
@@ -687,21 +697,22 @@ def generate_random_application(
         ),
     )
 
-    total_years_experience = _calculate_total_experience(work_history)
+    total_years_experience = _calculate_total_experience(work_experience)
 
     # Build the parsed_resume_data string by concatenating all relevant fields
     parsed_data_parts = []
     parsed_data_parts.append(f"Resume Language: {resume_lang}")
     parsed_data_parts.append(f"Total Years of Experience: {total_years_experience}")
     parsed_data_parts.append("Work History:")
-    for job in work_history:
+    for job in work_experience:
+        end_date_str = job.end_date.isoformat() if job.end_date else "present"
         parsed_data_parts.append(
-            f"- {job.job_title} at {job.company} ({job.start_date} to {job.end_date})"
+            f"- {job.job_title} at {job.company} ({job.start_date.isoformat()} to {end_date_str})"
         )
     parsed_data_parts.append("Education History:")
     for edu in education_history:
         parsed_data_parts.append(
-            f"- {edu.degree} from {edu.institution} ({edu.start_date} to {edu.end_date})"
+            f"- {edu.degree} from {edu.institution} ({edu.start_date.isoformat()} to {edu.end_date.isoformat()})"
         )
     parsed_data_parts.append("Skills:")
     parsed_data_parts.append(", ".join(parsed_skills))
@@ -721,7 +732,7 @@ def generate_random_application(
         resume_file_path=f"http://example.com/resumes/{application_id}.pdf",
         resume_language=resume_lang,
         total_years_experience=total_years_experience,
-        work_history=work_history,
+        work_experience=work_experience,
         education_history=education_history,
         parsed_skills=parsed_skills,
         certifications=certifications,

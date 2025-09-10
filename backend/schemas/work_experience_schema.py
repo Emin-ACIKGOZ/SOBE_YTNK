@@ -1,12 +1,6 @@
-"""
-Pydantic schemas for validating Work Experience data.
-
-This module defines the data models used for creating and retrieving
-individual work history entries, ensuring data integrity and consistency.
-"""
-
 import uuid
 from typing import Optional
+from datetime import date
 from pydantic import BaseModel, ConfigDict
 
 
@@ -20,8 +14,8 @@ class WorkExperienceBase(BaseModel):
 
     job_title: str
     company: str
-    start_date: str
-    end_date: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
     description: Optional[str] = None
 
 

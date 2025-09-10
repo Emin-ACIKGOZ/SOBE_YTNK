@@ -28,7 +28,9 @@ from backend.crud import (
     application_crud as crud_applications,
     job_crud as crud_jobs,
 )
-from backend.services.resume_parsing_service import process_resume_with_llm
+from backend.services.resume_parsing_service import (
+    process_and_persist_resume,
+)  # <-- Updated import
 from backend.services.resume_text_extraction_service import extract_text_from_pdf
 from backend.services.application_ranking_service import calculate_ensemble_score
 
@@ -80,50 +82,22 @@ async def process_and_rank_resume(
         with open(file_path, "rb") as saved_file:
             raw_text = await extract_text_from_pdf(BytesIO(saved_file.read()))
     except Exception as e:
-        # A broader exception is used here as `extract_text_from_pdf` could raise
-        # various parsing-related errors.
         logger.error("Error during PDF text extraction: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to extract text from PDF.",
         ) from e
 
-    # 3. Process the text with the LLM to get structured data
-    applicant_data, application_data = await process_resume_with_llm(
-        raw_text, resume_file_url=None
-    )
+    # 3. Call the service layer to handle parsing and persistence
+    db_application = await process_and_persist_resume(raw_text, file_path, job_id, db)
 
-    if not applicant_data or not application_data:
+    if not db_application:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to parse resume content using LLM.",
+            detail="Failed to parse and persist resume content.",
         )
 
-    # 4. Persist the applicant and application to the database
-    db_applicant = crud_applicants.get_applicant_by_email(
-        db, email=applicant_data.email
-    )
-    if not db_applicant:
-        db_applicant = crud_applicants.create_applicant(db, applicant_data)
-
-    new_application = ApplicationCreate(
-        job_id=job_id,
-        applicant_id=db_applicant.applicant_id,
-        resume_file_path=file_path,
-        resume_language=application_data.resume_language,
-        total_years_experience=application_data.total_years_experience,
-        work_history=application_data.work_history,
-        education_history=application_data.education_history,
-        parsed_skills=application_data.parsed_skills,
-        certifications=application_data.certifications,
-        languages=application_data.languages,
-        parsed_resume_data=application_data.parsed_resume_data,
-        status=application_data.status,
-    )
-
-    db_application = crud_applications.create_application(db, new_application)
-
-    # 5. Calculate and store the ranking score using the new CRUD function
+    # 4. Calculate and store the ranking score
     ranking_score = calculate_ensemble_score(job, db_application)
     crud_applications.update_application_ranking_score(
         db, db_application.application_id, ranking_score

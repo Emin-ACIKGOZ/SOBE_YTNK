@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from backend.database.base import Base
@@ -14,8 +14,8 @@ class EducationHistory(Base):
         application_id (uuid.UUID): Foreign key linking to the parent application.
         degree (str): The degree obtained.
         institution (str): The institution name.
-        start_date (str): The start date of the education.
-        end_date (str): The end date of the education.
+        start_date (Date): The start date of the education.
+        end_date (Date): The end date of the education.
         location (str): The location of the institution.
         application (relationship): Relationship back to the parent Application model.
     """
@@ -30,8 +30,8 @@ class EducationHistory(Base):
     )
     degree = Column(String, nullable=False)
     institution = Column(String, nullable=False)
-    start_date = Column(String, nullable=False)
-    end_date = Column(String, nullable=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
     location = Column(String, nullable=True)
 
     # Relationship to the parent Application model

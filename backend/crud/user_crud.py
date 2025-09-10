@@ -16,14 +16,13 @@ def create_user(db: Session, user: UserCreate):
     Creates a new user with a hashed password.
     """
     hashed_password = get_password_hash(user.password)
-    role_enum = UserRole(user.role.upper())
 
     db_user = User(
         id=uuid.uuid4(),
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role=role_enum,  # Use the mapped enum value here
+        role=user.role,  # Simplified to directly use the validated enum
     )
     db.add(db_user)
     db.commit()
