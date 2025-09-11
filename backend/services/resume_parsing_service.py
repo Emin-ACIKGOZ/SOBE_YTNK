@@ -19,6 +19,7 @@ import json_repair
 import requests
 from pydantic import BaseModel, ValidationError, field_validator
 from dateutil import parser
+from langdetect import detect, LangDetectException
 
 from sqlalchemy.orm import Session
 
@@ -195,7 +196,7 @@ class LLMEducationHistoryOutput(BaseModel):
     education_history: Optional[List[EducationHistoryOutput]] = []
 
 
-class LLMSkillsOutput(BaseModel):
+class LLMSkillsAndLanguagesOutput(BaseModel):
     """
     Schema for the output of the skills, certs, and languages parsing stage.
     """
@@ -362,16 +363,59 @@ def _repair_llm_json(output_str: str) -> Optional[dict]:
         return None
 
 
+def _detect_resume_language(text: str) -> str:
+    """
+    Detects the dominant language of the resume text.
+    Returns 'en' or 'tr'.
+    """
+    try:
+        # Detect the language and return a simple code
+        return detect(text)
+    except LangDetectException:
+        logger.warning("Could not detect resume language. Defaulting to 'en'.")
+        return "en"
+
+
+# --- Custom Prompts for Each Section ---
+
+CONTACT_INFO_PROMPT = """
+The resume is predominantly in {language_context}. Parse the following unstructured contact information text.
+Identify the **first name**, **last name**, **email**, **phone number**, and **LinkedIn** and **GitHub** URLs.
+The name is usually the first line. The email contains '@'. The phone number often starts with a '+' or a series of digits. If a field is not found, its value should be null. Return a strict JSON object with the specified schema.
+"""
+
+WORK_EXPERIENCE_PROMPT = """
+The resume is predominantly in {language_context}. Parse the following work history text. Each entry must be a separate object in a JSON list. Identify the **job title**, **company**, **start date**, **end date**, and a **description**. 'Present', 'Current', or 'Halen' should be converted to a modern date. The description should capture the key responsibilities and achievements, which are often found in bullet points. Return a strict JSON object with a 'work_experience' key containing the list.
+"""
+
+EDUCATION_PROMPT = """
+The resume is predominantly in {language_context}. Parse the following education history text. Each entry must be a separate object in a JSON list. Identify the **degree**, **institution**, **start date**, **end date**, and **location**. If an end date is not specified, it means the person is still studying. Return a strict JSON object with an 'education_history' key containing the list.
+"""
+
+SKILLS_AND_LANGUAGES_PROMPT = """
+The resume is predominantly in {language_context}. Parse the following text and extract a list of skills, certifications, and languages.
+
+A **skill** is an ability or proficiency (e.g., 'Python', 'SQL', 'Microsoft Office', 'Project Management').
+A **certification** is a formal credential or attestation, often with an issuing body (e.g., 'PMP', 'AWS Certified Solutions Architect').
+A **language** is a human language with an associated proficiency level.
+
+Look for keywords that introduce these sections, such as 'Skills', 'Technical Skills', 'Core Competencies', 'Yetenekler', 'Beceriler' for skills; 'Certifications', 'Licenses', 'Sertifikalar', 'Belgeler' for certifications; and 'Languages', 'Diller' for languages.
+
+Skills should be a simple list of strings. Certifications should be a list of objects containing the name, year issued, and issuing organization. If a certification has no year or organization, use null. Languages should be a list of objects with the language name and proficiency level (e.g., 'Fluent', 'Native', 'Intermediate').
+
+Return a single, strict JSON object with 'parsed_skills', 'certifications', and 'languages' keys.
+"""
+
 # --- Step 1: Initial Parsing and Section Extraction ---
 
 
-def _get_initial_parse_payload(text: str) -> dict:
+def _get_initial_parse_payload(text: str, language_context: str) -> dict:
     """
     Constructs a payload for the first LLM call, which now focuses solely
     on extracting and sectionalizing the resume content.
     """
     initial_prompt = (
-        "Analyze the entire resume text and identify its major sections. "
+        f"The resume is predominantly in {language_context}. Analyze the entire resume text and identify its major sections. "
         "Return the raw text for each section under a standardized key. "
         "If a section is not found, its value must be `null`.\n\n"
         "**Standardized Keys:**\n"
@@ -401,10 +445,10 @@ def _get_initial_parse_payload(text: str) -> dict:
 
 
 async def _parse_contact_info_section(
-    section_text: str,
+    section_text: str, language_context: str
 ) -> Optional[ContactInfoOutput]:
     """
-    Parses a single contact info section using a specialized prompt.
+    Parses a single contact info section using a specialized and hardened prompt.
     """
     schema_desc = """
     {
@@ -417,7 +461,8 @@ async def _parse_contact_info_section(
       "resume_language": "string | null"
     }
     """
-    payload = _get_section_parse_payload(section_text, schema_desc)
+    prompt = CONTACT_INFO_PROMPT.format(language_context=language_context)
+    payload = _get_section_parse_payload(section_text, schema_desc, prompt)
     data = await _get_llm_response(payload)
 
     if data and isinstance(data, dict):
@@ -428,11 +473,13 @@ async def _parse_contact_info_section(
     return None
 
 
-async def _parse_initial_info(raw_text: str) -> Optional[LLMInitialParseOutput]:
+async def _parse_initial_info(
+    raw_text: str, language_context: str
+) -> Optional[LLMInitialParseOutput]:
     """
     Step 1: Extracts applicant info and major sections.
     """
-    payload = _get_initial_parse_payload(raw_text)
+    payload = _get_initial_parse_payload(raw_text, language_context)
     data = await _get_llm_response(payload)
     if data:
         try:
@@ -445,14 +492,14 @@ async def _parse_initial_info(raw_text: str) -> Optional[LLMInitialParseOutput]:
 # --- Step 2: Specialized Section Parsing ---
 
 
-def _get_section_parse_payload(section_text: str, schema_description: str) -> dict:
+def _get_section_parse_payload(
+    section_text: str, schema_description: str, prompt_text: str
+) -> dict:
     """
     Constructs a dynamic payload for parsing a specific section.
     """
     section_prompt = (
-        f"Parse the following resume section text and extract all listed items. "
-        f"Return the output as a single, strict JSON object. Do not include any "
-        f"additional text or markdown fences (e.g., ```json).\n\n"
+        f"{prompt_text}\n\n"
         f"**Schema:**\n{schema_description}\n\n"
         f"**Section Text:**\n{section_text}"
     )
@@ -466,13 +513,13 @@ def _get_section_parse_payload(section_text: str, schema_description: str) -> di
             },
             {"role": "user", "content": section_prompt},
         ],
-        "temperature": 0.3,
+        "temperature": 0.0,
         "max_tokens": 1024,
     }
 
 
 async def _parse_work_experience_section(
-    section_text: str,
+    section_text: str, language_context: str
 ) -> List[WorkExperienceCreate]:
     """
     Parses a single work history section using a specialized prompt.
@@ -491,7 +538,8 @@ async def _parse_work_experience_section(
       ]
     }
     """
-    payload = _get_section_parse_payload(section_text, schema_desc)
+    prompt = WORK_EXPERIENCE_PROMPT.format(language_context=language_context)
+    payload = _get_section_parse_payload(section_text, schema_desc, prompt)
     data = await _get_llm_response(payload)
 
     parsed_experiences = []
@@ -513,7 +561,9 @@ async def _parse_work_experience_section(
     return parsed_experiences
 
 
-async def _parse_education_section(section_text: str) -> List[EducationHistoryCreate]:
+async def _parse_education_section(
+    section_text: str, language_context: str
+) -> List[EducationHistoryCreate]:
     """
     Parses a single education history section.
     """
@@ -531,7 +581,8 @@ async def _parse_education_section(section_text: str) -> List[EducationHistoryCr
       ]
     }
     """
-    payload = _get_section_parse_payload(section_text, schema_desc)
+    prompt = EDUCATION_PROMPT.format(language_context=language_context)
+    payload = _get_section_parse_payload(section_text, schema_desc, prompt)
     data = await _get_llm_response(payload)
 
     parsed_education = []
@@ -552,9 +603,11 @@ async def _parse_education_section(section_text: str) -> List[EducationHistoryCr
     return parsed_education
 
 
-async def _parse_skills_section(section_text: str) -> LLMSkillsOutput:
+async def _parse_skills_and_languages_section(
+    section_text: str, language_context: str
+) -> LLMSkillsAndLanguagesOutput:
     """
-    Parses skills, certifications, and languages from a section.
+    Parses skills, certifications, and languages from a section using a combined prompt.
     """
     schema_desc = """
     {
@@ -574,14 +627,15 @@ async def _parse_skills_section(section_text: str) -> LLMSkillsOutput:
       ]
     }
     """
-    payload = _get_section_parse_payload(section_text, schema_desc)
+    prompt = SKILLS_AND_LANGUAGES_PROMPT.format(language_context=language_context)
+    payload = _get_section_parse_payload(section_text, schema_desc, prompt)
     data = await _get_llm_response(payload)
     if data and isinstance(data, dict):
         try:
-            return LLMSkillsOutput(**data)
+            return LLMSkillsAndLanguagesOutput(**data)
         except ValidationError as e:
             logger.error("Pydantic validation failed for skills: %s", e)
-    return LLMSkillsOutput()  # Return an empty model on failure
+    return LLMSkillsAndLanguagesOutput()  # Return an empty model on failure
 
 
 # --- Main Orchestrator Function ---
@@ -595,21 +649,30 @@ async def process_and_persist_resume(
 ) -> Optional[Application]:
     """
     Main orchestration function to parse resume and persist data.
-    1. Extracts core applicant data and section text with a single LLM call.
+    1. Detects language and extracts section text with a single LLM call.
     2. Passes the raw section text to specialized parsing functions.
     3. Assembles the final *Create schemas and persists them to the database.
     """
-    # Step 1: Initial Parse - Sectionalization
-    initial_parse_result = await _parse_initial_info(raw_text)
+    # Step 1: Language Detection
+    detected_language = _detect_resume_language(raw_text)
+    language_context = (
+        "Turkish with some English words"
+        if detected_language == "tr"
+        else "English with some Turkish words"
+    )
+
+    # Step 2: Initial Parse - Sectionalization
+    initial_parse_result = await _parse_initial_info(raw_text, language_context)
     if not initial_parse_result:
         logger.error("Failed to perform initial resume sectionalization.")
         return None
 
-    # Step 2: Specialized Parsing for each section
+    # Step 3: Specialized Parsing for each section
     applicant_create: Optional[ApplicantCreate] = None
+    contact_info_output: Optional[ContactInfoOutput] = None
     if initial_parse_result.contact_info:
         contact_info_output = await _parse_contact_info_section(
-            initial_parse_result.contact_info
+            initial_parse_result.contact_info, language_context
         )
         if contact_info_output:
             applicant_create = ApplicantCreate(
@@ -625,25 +688,37 @@ async def process_and_persist_resume(
     work_experience: List[WorkExperienceCreate] = []
     if initial_parse_result.work_experience:
         work_experience = await _parse_work_experience_section(
-            initial_parse_result.work_experience
+            initial_parse_result.work_experience, language_context
         )
 
     education_history: List[EducationHistoryCreate] = []
     if initial_parse_result.education_history:
         education_history = await _parse_education_section(
-            initial_parse_result.education_history
+            initial_parse_result.education_history, language_context
         )
 
     parsed_skills: List[str] = []
     certifications: List[Certification] = []
     languages: List[LanguageSkill] = []
+
+    # Consolidate skills, certs, and languages into a single parsing step
+    combined_text = ""
     if initial_parse_result.skills:
-        skills_output = await _parse_skills_section(initial_parse_result.skills)
+        combined_text += initial_parse_result.skills + "\n"
+    if initial_parse_result.certifications:
+        combined_text += initial_parse_result.certifications + "\n"
+    if initial_parse_result.languages:
+        combined_text += initial_parse_result.languages
+
+    if combined_text.strip():
+        skills_output = await _parse_skills_and_languages_section(
+            combined_text, language_context
+        )
         parsed_skills = skills_output.parsed_skills
         certifications = skills_output.certifications
         languages = skills_output.languages
 
-    # Step 3: Handle Applicant
+    # Step 4: Handle Applicant
     # If no contact info was parsed, create a placeholder applicant
     if not applicant_create:
         applicant_create = ApplicantCreate(
@@ -662,18 +737,14 @@ async def process_and_persist_resume(
     if not db_applicant:
         db_applicant = applicant_crud.create_applicant(db, applicant_create)
 
-    # Step 4: Assemble and Persist the Application
+    # Step 5: Assemble and Persist the Application
     total_years_experience = _calculate_total_experience(work_experience)
 
     application_create = ApplicationCreate(
         job_id=job_id,
         applicant_id=db_applicant.applicant_id,
         resume_file_path=resume_file_path,
-        resume_language=(
-            contact_info_output.resume_language
-            if "contact_info_output" in locals() and contact_info_output
-            else None
-        ),
+        resume_language=detected_language,
         total_years_experience=total_years_experience,
         work_experience=work_experience,
         education_history=education_history,
