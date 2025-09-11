@@ -19,14 +19,17 @@ RUN apt-get update && \
     && pip install poetry==2.1.4 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the entire 'backend' directory into the container, maintaining its structure.
-COPY . /app/backend
-
 # Navigate to the backend directory for poetry commands.
 WORKDIR /app/backend
 
+# Copy only the Poetry files to leverage Docker's layer caching.
+COPY poetry.lock pyproject.toml ./
+
 # Install dependencies using Poetry.
 RUN poetry install --no-root --only main
+
+# Copy the rest of the application source code.
+COPY . .
 
 # --------------------
 # Stage 2: Final Image
