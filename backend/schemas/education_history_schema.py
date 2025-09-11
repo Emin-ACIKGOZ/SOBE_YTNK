@@ -14,7 +14,7 @@ class EducationHistoryBase(BaseModel):
 
     degree: str
     institution: str
-    start_date: date
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     location: Optional[str] = None
 

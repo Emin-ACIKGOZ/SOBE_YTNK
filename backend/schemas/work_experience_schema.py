@@ -14,7 +14,7 @@ class WorkExperienceBase(BaseModel):
 
     job_title: str
     company: str
-    start_date: date
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     description: Optional[str] = None
 

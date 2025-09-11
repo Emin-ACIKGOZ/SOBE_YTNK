@@ -102,7 +102,9 @@ def score_by_skill_match(job: JobPosting, resume: Application) -> float:
     job_cert_quals = {
         q.lower() for q in job.qualifications if "certificate" in q.lower()
     }
-    resume_certs = {c.name.lower() for c in resume.certifications}
+    resume_certs = {
+        c.get("name").lower() for c in resume.certifications if c.get("name")
+    }
     matched_certs = len(job_cert_quals.intersection(resume_certs))
 
     cert_bonus = 0.0

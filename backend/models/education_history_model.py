@@ -30,7 +30,7 @@ class EducationHistory(Base):
     )
     degree = Column(String, nullable=False)
     institution = Column(String, nullable=False)
-    start_date = Column(Date, nullable=False)
+    start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     location = Column(String, nullable=True)
 

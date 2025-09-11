@@ -76,7 +76,7 @@ CREATE TABLE work_experiences (
     application_id UUID NOT NULL REFERENCES applications(application_id) ON DELETE CASCADE,
     job_title VARCHAR NOT NULL,
     company VARCHAR NOT NULL,
-    start_date DATE NOT NULL,
+    start_date DATE,
     end_date DATE,
     description VARCHAR
 );
@@ -87,7 +87,7 @@ CREATE TABLE education_history (
     application_id UUID NOT NULL REFERENCES applications(application_id) ON DELETE CASCADE,
     degree VARCHAR NOT NULL,
     institution VARCHAR NOT NULL,
-    start_date DATE NOT NULL,
+    start_date DATE,
     end_date DATE,
     location VARCHAR
 );

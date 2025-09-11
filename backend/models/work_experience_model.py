@@ -30,7 +30,7 @@ class WorkExperience(Base):
     )
     job_title = Column(String, nullable=False)
     company = Column(String, nullable=False)
-    start_date = Column(Date, nullable=False)
+    start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     description = Column(String, nullable=True)
 

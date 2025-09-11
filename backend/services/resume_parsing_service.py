@@ -47,13 +47,28 @@ API_URL = "https://aigateway.havelsan.com.tr/chat/v1/chat/completions"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
+
 # --- Internal Pydantic Schemas for Parsing Steps ---
 
 
 class LLMInitialParseOutput(BaseModel):
     """
     Schema for the output of the first parsing stage:
-    Extracts core contact info and raw text sections.
+    Extracts raw text sections using a dedicated LLM call.
+    """
+
+    contact_info: Optional[str] = None
+    summary: Optional[str] = None
+    work_experience: Optional[str] = None
+    education_history: Optional[str] = None
+    skills: Optional[str] = None
+    certifications: Optional[str] = None
+    languages: Optional[str] = None
+
+
+class ContactInfoOutput(BaseModel):
+    """
+    Schema for the output of the dedicated contact info parsing stage.
     """
 
     first_name: Optional[str] = None
@@ -63,59 +78,58 @@ class LLMInitialParseOutput(BaseModel):
     linkedin_profile_url: Optional[str] = None
     github_profile_url: Optional[str] = None
     resume_language: Optional[str] = None
-    sections: dict[str, Optional[str]]
 
 
 class WorkExperienceOutput(BaseModel):
     """
     Pydantic schema to validate and parse work experience,
-    handling various date string formats.
+    ensuring compliance with database schema requirements.
     """
 
-    job_title: Optional[str] = None
-    company: Optional[str] = None
+    # These fields are required by WorkExperienceCreate, so they must be present.
+    job_title: str
+    company: str
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     description: Optional[str] = None
 
-    @classmethod
     @field_validator("start_date", "end_date", mode="before")
+    # pylint: disable=no-self-argument
     def parse_date_strings(cls, v, info):
         """
-        Custom validator to handle date strings from LLM output.
-        Combines a specific regex for `YYYY-YYYY` ranges with
-        the robust `dateutil.parser` for other formats.
+        Custom validator to handle date strings from LLM output,
+        ensuring a 'date' object is always returned.
         """
         if not v or not isinstance(v, str):
+            # For non-required fields, we return None. For required fields,
+            # this will be caught by Pydantic later.
             return None
 
         v_lower = v.lower().strip()
 
-        # Step 1: Handle "present" and Turkish equivalents first
+        # Handle "present" and Turkish equivalents
         if v_lower in ("present", "current", "halen", "devam ediyor"):
             return date.today()
 
-        # Step 2: Handle "YYYY-YYYY" range with a dedicated regex
+        # Handle "YYYY-YYYY" range with a dedicated regex
         range_match = re.match(r"^(\d{4})-(\d{4})$", v_lower)
         if range_match:
-            start_year = int(range_match.group(1))
-            end_year = int(range_match.group(2))
+            year = int(range_match.group(1 if info.field_name == "start_date" else 2))
+            # Return a date object for the first or last day of the year
+            return (
+                date(year, 1, 1)
+                if info.field_name == "start_date"
+                else date(year, 12, 31)
+            )
 
-            if info.field_name == "start_date":
-                return date(start_year, 1, 1)
-            elif info.field_name == "end_date":
-                return date(end_year, 12, 31)
-
-        # Step 3: Use dateutil.parser for all other formats
+        # Use dateutil.parser for all other formats
         try:
-            # dayfirst=True is specified to handle ambiguous European/Turkish formats
-            # like 18-08-2022
-            parsed_date = parser.parse(v_lower, dayfirst=True).date()
-            return parsed_date
-        except (parser.ParserError, ValueError, TypeError):
-            # If dateutil can't figure it out, return None
-            logger.warning(f"Could not parse date string: '{v}'")
-            return None
+            # The .date() call is crucial to convert from datetime to date.
+            return parser.parse(v_lower, dayfirst=True).date()
+        except (parser.ParserError, ValueError, TypeError) as e:
+            logger.warning("Could not parse date string: '%s'. Error: %s", v, e)
+            # Raising a ValueError allows Pydantic to handle the validation error.
+            raise ValueError(f"Invalid date format: '{v}'") from e
 
 
 class LLMWorkHistoryOutput(BaseModel):
@@ -129,53 +143,48 @@ class LLMWorkHistoryOutput(BaseModel):
 class EducationHistoryOutput(BaseModel):
     """
     Pydantic schema to validate and parse education history,
-    handling various date string formats.
+    ensuring compliance with database schema requirements.
     """
 
-    degree: Optional[str] = None
-    institution: Optional[str] = None
+    # These fields are required by EducationHistoryCreate, so they must be present.
+    degree: str
+    institution: str
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     location: Optional[str] = None
 
-    @classmethod
     @field_validator("start_date", "end_date", mode="before")
+    # pylint: disable=no-self-argument
     def parse_date_strings(cls, v, info):
         """
-        Custom validator to handle date strings from LLM output.
-        Combines a specific regex for `YYYY-YYYY` ranges with
-        the robust `dateutil.parser` for other formats.
+        Custom validator to handle date strings from LLM output,
+        ensuring a 'date' object is always returned.
         """
         if not v or not isinstance(v, str):
             return None
 
         v_lower = v.lower().strip()
 
-        # Step 1: Handle "present" and Turkish equivalents first
+        # Handle "present" and Turkish equivalents
         if v_lower in ("present", "current", "halen", "devam ediyor"):
             return date.today()
 
-        # Step 2: Handle "YYYY-YYYY" range with a dedicated regex
+        # Handle "YYYY-YYYY" range with a dedicated regex
         range_match = re.match(r"^(\d{4})-(\d{4})$", v_lower)
         if range_match:
-            start_year = int(range_match.group(1))
-            end_year = int(range_match.group(2))
+            year = int(range_match.group(1 if info.field_name == "start_date" else 2))
+            return (
+                date(year, 1, 1)
+                if info.field_name == "start_date"
+                else date(year, 12, 31)
+            )
 
-            if info.field_name == "start_date":
-                return date(start_year, 1, 1)
-            elif info.field_name == "end_date":
-                return date(end_year, 12, 31)
-
-        # Step 3: Use dateutil.parser for all other formats
+        # Use dateutil.parser for all other formats
         try:
-            # dayfirst=True is specified to handle ambiguous European/Turkish formats
-            # like 18-08-2022
-            parsed_date = parser.parse(v_lower, dayfirst=True).date()
-            return parsed_date
-        except (parser.ParserError, ValueError, TypeError):
-            # If dateutil can't figure it out, return None
-            logger.warning(f"Could not parse date string: '{v}'")
-            return None
+            return parser.parse(v_lower, dayfirst=True).date()
+        except (parser.ParserError, ValueError, TypeError) as e:
+            logger.warning("Could not parse date string: '%s'. Error: %s", v, e)
+            raise ValueError(f"Invalid date format: '{v}'") from e
 
 
 class LLMEducationHistoryOutput(BaseModel):
@@ -235,7 +244,7 @@ def _calculate_total_experience(work_experience: List[WorkExperienceCreate]) -> 
                     )
                 else:
                     current_date = current_date.replace(month=current_date.month + 1)
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             logger.error("Error processing work experience date: %s", e)
             continue
 
@@ -248,46 +257,29 @@ async def _get_llm_response(payload: dict) -> Optional[dict]:
     Handles API requests, retries, and fallbacks for LLM calls.
     Note: This is now an async function.
     """
-    # Attempt primary API (Havelsan)
-    havelsan_retries = 3
-    for i in range(havelsan_retries):
+    # Attempt primary API (Gemini)
+    gemini_retries = 3
+    for i in range(gemini_retries):
         try:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {API_KEY}",
+            gemini_payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": payload["messages"][0]["content"]
+                                + "\n\n"
+                                + payload["messages"][1]["content"]
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": payload.get("temperature", 0.3),
+                },
             }
-            logger.info("Attempt %s to connect to Havelsan API: %s", i + 1, API_URL)
-            response = requests.post(API_URL, headers=headers, json=payload, timeout=10)
-            response.raise_for_status()
-            llm_output_json = response.json()
-            content_str = llm_output_json.get("content")
-            if not content_str:
-                logger.error("Havelsan response JSON missing 'content' key.")
-                break
-            return _repair_llm_json(content_str)
-        except requests.exceptions.RequestException as e:
-            logger.error(
-                "Havelsan request failed (Attempt %s/%s): %s. Retrying in %s seconds...",
-                i + 1,
-                havelsan_retries,
-                e,
-                2 ** (i + 1),
+            logger.info(
+                "Attempt %s to connect to Gemini API: %s", i + 1, GEMINI_API_URL
             )
-            await asyncio.sleep(2 ** (i + 1))
-        except Exception as e:
-            logger.error("An unexpected error occurred during Havelsan call: %s", e)
-            break
-
-    # Fallback to Gemini API if primary fails
-    if GEMINI_API_KEY:
-        gemini_payload = {
-            "contents": [{"parts": [{"text": payload["messages"][1]["content"]}]}],
-            "generationConfig": {
-                "temperature": 0.3,
-            },
-        }
-        try:
-            logger.info("Havelsan API failed. Attempting fallback to Gemini API.")
             headers = {"Content-Type": "application/json"}
             response = requests.post(
                 f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
@@ -302,10 +294,56 @@ async def _get_llm_response(payload: dict) -> Optional[dict]:
             ]
             return _repair_llm_json(content_str)
         except requests.exceptions.RequestException as e:
-            logger.error("Gemini fallback request failed: %s", e)
+            logger.error(
+                "Gemini request failed (Attempt %s/%s): %s. "
+                "Retrying in %s seconds...",
+                i + 1,
+                gemini_retries,
+                e,
+                2 ** (i + 1),
+            )
+            await asyncio.sleep(2 ** (i + 1))
+        # json_repair library's exceptions should be caught more generically
         except Exception as e:
-            logger.error("An unexpected error occurred during Gemini fallback: %s", e)
+            logger.error(
+                "An error occurred during JSON processing in Gemini primary: %s", e
+            )
+            break
 
+    # Fallback to Havelsan API if primary fails
+    if API_KEY:
+        havelsan_retries = 3
+        for i in range(havelsan_retries):
+            try:
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {API_KEY}",
+                }
+                logger.info("Gemini API failed. Attempting fallback to Havelsan API.")
+                response = requests.post(
+                    API_URL, headers=headers, json=payload, timeout=10
+                )
+                response.raise_for_status()
+                llm_output_json = response.json()
+                content_str = llm_output_json.get("content")
+                if not content_str:
+                    logger.error("Havelsan response JSON missing 'content' key.")
+                    break
+                return _repair_llm_json(content_str)
+            except requests.exceptions.RequestException as e:
+                logger.error(
+                    "Havelsan request failed (Attempt %s/%s): %s. "
+                    "Retrying in %s seconds...",
+                    i + 1,
+                    havelsan_retries,
+                    e,
+                    2 ** (i + 1),
+                )
+                await asyncio.sleep(2 ** (i + 1))
+            # json_repair library's exceptions should be caught more generically
+            except Exception as e:
+                logger.error("An error occurred during JSON processing: %s", e)
+                break
     return None
 
 
@@ -329,31 +367,23 @@ def _repair_llm_json(output_str: str) -> Optional[dict]:
 
 def _get_initial_parse_payload(text: str) -> dict:
     """
-    Constructs a payload for the first LLM call, which extracts
-    core contact info and raw section text.
+    Constructs a payload for the first LLM call, which now focuses solely
+    on extracting and sectionalizing the resume content.
     """
     initial_prompt = (
-        "Extract the following information from the resume text: first name, "
-        "last name, email, phone number, LinkedIn URL, GitHub URL, and the "
-        "primary language of the resume ('en' or 'tr').\n\n"
-        "Additionally, identify and return the raw text for the 'work history', "
-        "'education history', and 'skills' sections. If a section is not found, "
-        "its value should be `null`.\n\n"
-        "Return the output as a single, strict JSON object with the following schema: "
-        "{\n"
-        '  "first_name": "string",\n'
-        '  "last_name": "string",\n'
-        '  "email": "string | null",\n'
-        '  "phone_number": "string | null",\n'
-        '  "linkedin_profile_url": "string | null",\n'
-        '  "github_profile_url": "string | null",\n'
-        '  "resume_language": "string",\n'
-        '  "sections": {\n'
-        '    "work_experience": "string | null",\n'
-        '    "education_history": "string | null",\n'
-        '    "skills": "string | null"\n'
-        "  }\n"
-        "}\n\n"
+        "Analyze the entire resume text and identify its major sections. "
+        "Return the raw text for each section under a standardized key. "
+        "If a section is not found, its value must be `null`.\n\n"
+        "**Standardized Keys:**\n"
+        "- `contact_info` (for name, email, phone, links)\n"
+        "- `summary` (for professional summary or objective)\n"
+        "- `work_experience`\n"
+        "- `education_history`\n"
+        "- `skills`\n"
+        "- `certifications`\n"
+        "- `languages`\n\n"
+        "Return the output as a single, strict JSON object. Do not include "
+        "any other text, explanations, or markdown fences (e.g., ```json).\n\n"
         "**Resume Text:**\n" + text
     )
     return {
@@ -361,13 +391,41 @@ def _get_initial_parse_payload(text: str) -> dict:
         "messages": [
             {
                 "role": "system",
-                "content": "You are a specialized parser that extracts contact info and resume sections. Respond only with the requested JSON.",
+                "content": "You are a specialized resume section extractor. Respond only with the requested JSON.",
             },
             {"role": "user", "content": initial_prompt},
         ],
-        "temperature": 0.3,
+        "temperature": 0.1,
         "max_tokens": 1024,
     }
+
+
+async def _parse_contact_info_section(
+    section_text: str,
+) -> Optional[ContactInfoOutput]:
+    """
+    Parses a single contact info section using a specialized prompt.
+    """
+    schema_desc = """
+    {
+      "first_name": "string | null",
+      "last_name": "string | null",
+      "email": "string | null",
+      "phone_number": "string | null",
+      "linkedin_profile_url": "string | null",
+      "github_profile_url": "string | null",
+      "resume_language": "string | null"
+    }
+    """
+    payload = _get_section_parse_payload(section_text, schema_desc)
+    data = await _get_llm_response(payload)
+
+    if data and isinstance(data, dict):
+        try:
+            return ContactInfoOutput(**data)
+        except ValidationError as e:
+            logger.error("Pydantic validation failed for contact info: %s", e)
+    return None
 
 
 async def _parse_initial_info(raw_text: str) -> Optional[LLMInitialParseOutput]:
@@ -403,7 +461,8 @@ def _get_section_parse_payload(section_text: str, schema_description: str) -> di
         "messages": [
             {
                 "role": "system",
-                "content": "You are a specialized parser for a single resume section. Respond only with the requested JSON object.",
+                "content": "You are a specialized parser for a single resume section. "
+                "Respond only with the requested JSON object.",
             },
             {"role": "user", "content": section_prompt},
         ],
@@ -418,14 +477,15 @@ async def _parse_work_experience_section(
     """
     Parses a single work history section using a specialized prompt.
     """
+    # Updated schema description for the LLM to reflect the non-optional fields
     schema_desc = """
     {
       "work_experience": [
         {
           "job_title": "string",
           "company": "string",
-          "start_date": "YYYY-MM | YYYY | YYYY-YYYY | 'present'",
-          "end_date": "YYYY-MM | YYYY | YYYY-YYYY | 'present'",
+          "start_date": "YYYY-MM | YYYY | 'present'",
+          "end_date": "YYYY-MM | YYYY | 'present'",
           "description": "string | null"
         }
       ]
@@ -433,31 +493,39 @@ async def _parse_work_experience_section(
     """
     payload = _get_section_parse_payload(section_text, schema_desc)
     data = await _get_llm_response(payload)
+
+    parsed_experiences = []
     if data and isinstance(data, dict):
         try:
-            # Pydantic's validator will now handle the date string conversion
+            # Pydantic will now validate for the non-optional fields
             validated_output = LLMWorkHistoryOutput(**data)
-            return [
-                WorkExperienceCreate(**item.model_dump())
-                for item in validated_output.work_experience
-            ]
+            for item in validated_output.work_experience:
+                # Only add valid entries that meet the database schema requirements
+                if item.job_title and item.company and item.start_date:
+                    parsed_experiences.append(WorkExperienceCreate(**item.model_dump()))
+                else:
+                    logger.warning(
+                        "Skipping work experience entry due to missing required "
+                        "fields."
+                    )
         except ValidationError as e:
             logger.error("Pydantic validation failed for work history: %s", e)
-    return []
+    return parsed_experiences
 
 
 async def _parse_education_section(section_text: str) -> List[EducationHistoryCreate]:
     """
     Parses a single education history section.
     """
+    # Updated schema description for the LLM to reflect the non-optional fields
     schema_desc = """
     {
       "education_history": [
         {
           "degree": "string",
           "institution": "string",
-          "start_date": "YYYY-MM | YYYY | YYYY-YYYY | 'present'",
-          "end_date": "YYYY-MM | YYYY | YYYY-YYYY | 'present'",
+          "start_date": "YYYY-MM | YYYY | 'present'",
+          "end_date": "YYYY-MM | YYYY | 'present'",
           "location": "string | null"
         }
       ]
@@ -465,17 +533,23 @@ async def _parse_education_section(section_text: str) -> List[EducationHistoryCr
     """
     payload = _get_section_parse_payload(section_text, schema_desc)
     data = await _get_llm_response(payload)
+
+    parsed_education = []
     if data and isinstance(data, dict):
         try:
-            # Pydantic's validator will now handle the date string conversion
             validated_output = LLMEducationHistoryOutput(**data)
-            return [
-                EducationHistoryCreate(**item.model_dump())
-                for item in validated_output.education_history
-            ]
+            for item in validated_output.education_history:
+                # Only add valid entries that meet the database schema requirements
+                if item.degree and item.institution and item.start_date:
+                    parsed_education.append(EducationHistoryCreate(**item.model_dump()))
+                else:
+                    logger.warning(
+                        "Skipping education history entry due to missing required "
+                        "fields."
+                    )
         except ValidationError as e:
             logger.error("Pydantic validation failed for education history: %s", e)
-    return []
+    return parsed_education
 
 
 async def _parse_skills_section(section_text: str) -> LLMSkillsOutput:
@@ -525,45 +599,61 @@ async def process_and_persist_resume(
     2. Passes the raw section text to specialized parsing functions.
     3. Assembles the final *Create schemas and persists them to the database.
     """
-    # Step 1: Initial Parse
+    # Step 1: Initial Parse - Sectionalization
     initial_parse_result = await _parse_initial_info(raw_text)
     if not initial_parse_result:
-        logger.error("Failed to perform initial resume parse.")
+        logger.error("Failed to perform initial resume sectionalization.")
         return None
 
-    # Step 2: Specialized Parsing
+    # Step 2: Specialized Parsing for each section
+    applicant_create: Optional[ApplicantCreate] = None
+    if initial_parse_result.contact_info:
+        contact_info_output = await _parse_contact_info_section(
+            initial_parse_result.contact_info
+        )
+        if contact_info_output:
+            applicant_create = ApplicantCreate(
+                first_name=contact_info_output.first_name or "N/A",
+                last_name=contact_info_output.last_name or "N/A",
+                email=contact_info_output.email
+                or f"no-email-{uuid.uuid4()}@example.com",
+                phone_number=contact_info_output.phone_number,
+                linkedin_profile_url=contact_info_output.linkedin_profile_url,
+                github_profile_url=contact_info_output.github_profile_url,
+            )
+
     work_experience: List[WorkExperienceCreate] = []
-    if initial_parse_result.sections.get("work_experience"):
+    if initial_parse_result.work_experience:
         work_experience = await _parse_work_experience_section(
-            initial_parse_result.sections["work_experience"]
+            initial_parse_result.work_experience
         )
 
     education_history: List[EducationHistoryCreate] = []
-    if initial_parse_result.sections.get("education_history"):
+    if initial_parse_result.education_history:
         education_history = await _parse_education_section(
-            initial_parse_result.sections["education_history"]
+            initial_parse_result.education_history
         )
 
     parsed_skills: List[str] = []
     certifications: List[Certification] = []
     languages: List[LanguageSkill] = []
-    if initial_parse_result.sections.get("skills"):
-        skills_output = await _parse_skills_section(
-            initial_parse_result.sections["skills"]
-        )
+    if initial_parse_result.skills:
+        skills_output = await _parse_skills_section(initial_parse_result.skills)
         parsed_skills = skills_output.parsed_skills
         certifications = skills_output.certifications
         languages = skills_output.languages
 
     # Step 3: Handle Applicant
-    applicant_create = ApplicantCreate(
-        first_name=initial_parse_result.first_name or "N/A",
-        last_name=initial_parse_result.last_name or "N/A",
-        email=initial_parse_result.email or f"no-email-{uuid.uuid4()}@example.com",
-        phone_number=initial_parse_result.phone_number,
-        linkedin_profile_url=initial_parse_result.linkedin_profile_url,
-        github_profile_url=initial_parse_result.github_profile_url,
-    )
+    # If no contact info was parsed, create a placeholder applicant
+    if not applicant_create:
+        applicant_create = ApplicantCreate(
+            first_name="N/A",
+            last_name="N/A",
+            email=f"no-email-{uuid.uuid4()}@example.com",
+            phone_number=None,
+            linkedin_profile_url=None,
+            github_profile_url=None,
+        )
 
     # Check for existing applicant and create if necessary
     db_applicant = applicant_crud.get_applicant_by_email(
@@ -579,7 +669,11 @@ async def process_and_persist_resume(
         job_id=job_id,
         applicant_id=db_applicant.applicant_id,
         resume_file_path=resume_file_path,
-        resume_language=initial_parse_result.resume_language,
+        resume_language=(
+            contact_info_output.resume_language
+            if "contact_info_output" in locals() and contact_info_output
+            else None
+        ),
         total_years_experience=total_years_experience,
         work_experience=work_experience,
         education_history=education_history,

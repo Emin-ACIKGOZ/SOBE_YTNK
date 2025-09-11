@@ -672,8 +672,14 @@ def generate_random_application(
     work_experience = generate_work_experience(application_id, is_turkish)
     education_history = generate_education_history(application_id, is_turkish)
     parsed_skills = generate_parsed_skills(is_turkish)
-    certifications = generate_certifications(is_turkish)
-    languages = generate_languages(is_turkish)
+
+    # Generate Pydantic objects first
+    pydantic_certifications = generate_certifications(is_turkish)
+    pydantic_languages = generate_languages(is_turkish)
+
+    # Convert Pydantic objects to dictionaries to simulate data from the database
+    certifications = [c.model_dump() for c in pydantic_certifications]
+    languages = [l.model_dump() for l in pydantic_languages]
 
     email_local_part = (
         f"{first_name.lower()}{last_name.lower()}" f"{random.randint(1, 99)}"
@@ -717,12 +723,11 @@ def generate_random_application(
     parsed_data_parts.append("Skills:")
     parsed_data_parts.append(", ".join(parsed_skills))
     parsed_data_parts.append("Certifications:")
-    for cert in certifications:
+    for cert in pydantic_certifications:
         parsed_data_parts.append(f"- {cert.name} ({cert.year_issued})")
     parsed_data_parts.append("Languages:")
-    parsed_data_parts.append(
-        ", ".join([f"{lang.name} ({lang.level})" for lang in languages])
-    )
+    for lang in pydantic_languages:
+        parsed_data_parts.append(f"- {lang.name} ({lang.level})")
 
     parsed_resume_data = "\n".join(parsed_data_parts)
 
