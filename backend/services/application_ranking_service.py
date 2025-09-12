@@ -55,6 +55,93 @@ MAX_EDUCATION_DURATION = {
     EducationLevel.DOCTORATE: 4,
 }
 
+# --- Education Degree Mapping ---
+
+CANONICAL_DEGREES = {
+    EducationLevel.HIGH_SCHOOL: [
+        "High School Diploma",
+        "High School",
+        "Lise Diploması",
+        "Lise",
+        "High School Equivalency",
+        "GED",
+    ],
+    EducationLevel.ASSOCIATE: [
+        "Associate Degree",
+        "Associate of Arts",
+        "Associate of Science",
+        "A.A.",
+        "A.S.",
+        "Ön Lisans Derecesi",
+        "Ön Lisans",
+    ],
+    EducationLevel.BACHELORS: [
+        "Bachelor of Science",
+        "Bachelor of Arts",
+        "B.S.",
+        "B.A.",
+        "BSc",
+        "BA",
+        "Lisans Derecesi",
+        "Mühendislik Lisansı",
+        "Lisans",
+        "Undergraduate Degree",
+    ],
+    EducationLevel.MASTERS: [
+        "Master of Science",
+        "Master of Arts",
+        "M.S.",
+        "M.A.",
+        "MSc",
+        "MA",
+        "Yüksek Lisans Derecesi",
+        "Yüksek Lisans",
+    ],
+    EducationLevel.DOCTORATE: [
+        "Doctor of Philosophy",
+        "Ph.D.",
+        "Ph.D",
+        "Doctorate",
+        "Doktora Derecesi",
+        "Doktora",
+        "Doktora Diploması",
+    ],
+}
+
+# Pre-compute and store embeddings for canonical degrees
+CANONICAL_EMBEDDINGS = {}
+for level, degrees in CANONICAL_DEGREES.items():
+    embeddings = SENTENCE_TRANSFORMER_MODEL.encode(degrees, convert_to_tensor=True)
+    CANONICAL_EMBEDDINGS[level] = embeddings.mean(dim=0)
+
+
+def map_degree_to_level(raw_degree_string: str) -> EducationLevel | None:
+    """
+    Maps a raw degree string to a canonical EducationLevel using semantic matching.
+    """
+    if not raw_degree_string:
+        return None
+
+    user_degree_embedding = SENTENCE_TRANSFORMER_MODEL.encode(
+        raw_degree_string, convert_to_tensor=True
+    )
+
+    best_match = None
+    max_similarity = 0.0
+
+    for level, canonical_embedding in CANONICAL_EMBEDDINGS.items():
+        similarity = util.cos_sim(user_degree_embedding, canonical_embedding).item()
+
+        if similarity > max_similarity:
+            max_similarity = similarity
+            best_match = level
+
+    if max_similarity < 0.7:
+        return None
+
+    return best_match
+
+
 # --- Scoring Functions ---
 
 
@@ -184,14 +271,12 @@ def score_by_education_fit(job: JobPosting, resume: Application) -> float:
         relevance_similarity = util.cos_sim(job_title_embedding, edu_embedding).item()
 
         if relevance_similarity > EDUCATION_RELEVANCE_THRESHOLD:
-            # Safely handle the case where the degree might not be in the enum
-            try:
-                edu_level = EducationLevel(edu.degree)
+            # Map the raw degree string using the new semantic matching function
+            edu_level = map_degree_to_level(edu.degree)
+            max_years = None
+            if edu_level:
+                # Use the mapped level to find the max duration
                 max_years = MAX_EDUCATION_DURATION.get(edu_level)
-            except ValueError:
-                max_years = (
-                    None  # Treat unknown degrees as having no max duration constraint
-                )
 
             if max_years and duration_years > max_years:
                 education_score -= 0.5
