@@ -165,9 +165,16 @@ def score_by_education_fit(job: JobPosting, resume: Application) -> float:
 
     education_score = 0.0
     for edu in resume.education_history:
+        # Check if start and end dates exist before proceeding
+        if not edu.start_date:
+            continue
+
+        # Use the current date if the end date is not available (for ongoing education)
+        end_date = edu.end_date if edu.end_date is not None else date.today()
+
         # The dates are now date objects, so we convert them to datetime for subtraction
         edu_start_date = datetime.combine(edu.start_date, datetime.min.time())
-        edu_end_date = datetime.combine(edu.end_date, datetime.min.time())
+        edu_end_date = datetime.combine(end_date, datetime.min.time())
 
         duration_years = (edu_end_date - edu_start_date).days / 365.25
 
@@ -177,8 +184,14 @@ def score_by_education_fit(job: JobPosting, resume: Application) -> float:
         relevance_similarity = util.cos_sim(job_title_embedding, edu_embedding).item()
 
         if relevance_similarity > EDUCATION_RELEVANCE_THRESHOLD:
-            edu_level = EducationLevel(edu.degree)
-            max_years = MAX_EDUCATION_DURATION.get(edu_level)
+            # Safely handle the case where the degree might not be in the enum
+            try:
+                edu_level = EducationLevel(edu.degree)
+                max_years = MAX_EDUCATION_DURATION.get(edu_level)
+            except ValueError:
+                max_years = (
+                    None  # Treat unknown degrees as having no max duration constraint
+                )
 
             if max_years and duration_years > max_years:
                 education_score -= 0.5

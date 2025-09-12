@@ -221,16 +221,14 @@ def _calculate_total_experience(work_experience: List[WorkExperienceCreate]) -> 
 
     for job in work_experience:
         try:
-            # Convert date objects to datetime objects for calculation
-            if job.start_date:
-                start_dt = datetime.combine(job.start_date, datetime.min.time())
-            else:
+            if not job.start_date:
                 continue
 
-            if job.end_date:
-                end_dt = datetime.combine(job.end_date, datetime.min.time())
-            else:
-                end_dt = datetime.now()
+            start_dt = datetime.combine(job.start_date, datetime.min.time())
+
+            # Use today's date if the end date is not available
+            end_date_for_calc = job.end_date if job.end_date else date.today()
+            end_dt = datetime.combine(end_date_for_calc, datetime.min.time())
 
             if start_dt > end_dt:
                 start_dt, end_dt = end_dt, start_dt
