@@ -1,19 +1,17 @@
 "use client";
 
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useApp } from "@/hooks/use-app";
-import { useToast } from "@/hooks/use-toast";
-import { matchCandidate } from "@/ai/flows/ai-candidate-matching";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Loader2, MapPin, Building2, Clock, DollarSign } from "lucide-react";
 import { CvUpload } from "@/components/cv-upload";
-import { CandidateCard } from "@/components/candidate-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getJob } from "@/lib/api";
+import { getRankings, getResumeRankings, ranking } from "@/lib/api/ranking";
+import { ArrowLeft, Briefcase, Building2, Calendar, Clock, Code, DollarSign, FileText, GraduationCap, Loader2, MapPin, Star, User, Users } from "lucide-react";
 
 // API'den gelen veri yapısına uygun Job interface'i
 interface Job {
@@ -30,6 +28,45 @@ interface Job {
   responsibilities: string[];
   is_active: boolean;
   posted_at: string;
+}
+
+// Candidate veri yapısı
+interface Candidate {
+  resume_language: string;
+  total_years_experience: number;
+  parsed_skills: string[];
+  certifications: any[];
+  languages: any[];
+  parsed_resume_data: string;
+  status: string;
+  ranking_score: number;
+  application_id: string;
+  applicant_id: string;
+  job_id: string;
+  application_date: string;
+  resume_file_path: string;
+  work_experience: WorkExperience[];
+  education_history: Education[];
+}
+
+interface WorkExperience {
+  job_title: string;
+  company: string;
+  start_date: string;
+  end_date: string;
+  description: string;
+  id: string;
+  application_id: string;
+}
+
+interface Education {
+  degree: string;
+  institution: string;
+  start_date: string;
+  end_date: string;
+  location: string | null;
+  id: string;
+  application_id: string;
 }
 
 // Employment type ve seniority level için Türkçe etiketler
@@ -50,18 +87,296 @@ const SENIORITY_LEVEL_LABELS: Record<string, string> = {
   'MANAGER': 'Manager'
 };
 
+const sendToRankingAPI = async (jobId: string, file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await ranking(jobId, file);
+
+  if (response.status != 201) {
+    throw new Error(`Ranking API error: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.data;
+};
+
+// Candidate Card component
+// CandidateCard component'inin PDF görüntüleyici ile güncellenmiş hali
+const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
+  const [pdfData, setPdfData] = useState<string | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
+
+  // CV'den adayın ismini çıkarma fonksiyonu
+  const extractNameFromCV = (cvData: string): string => {
+    const lines = cvData.split('\n');
+    // İlk satırda genellikle isim bulunur
+    const firstLine = lines[0]?.trim();
+    if (firstLine && firstLine.length < 50 && !firstLine.includes('@') && !firstLine.includes('http')) {
+      return firstLine;
+    }
+    return 'Aday';
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 0.8) return 'text-green-600 bg-green-50';
+    if (score >= 0.6) return 'text-blue-600 bg-blue-50';
+    if (score >= 0.4) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  };
+
+  const getScoreText = (score: number) => {
+    if (score >= 0.8) return 'Mükemmel Eşleşme';
+    if (score >= 0.6) return 'İyi Eşleşme';
+    if (score >= 0.4) return 'Orta Eşleşme';
+    return 'Düşük Eşleşme';
+  };
+
+  const handleViewCV = async () => {
+    try {
+      // Hangi adayın CV'sine tıklandığını log'la
+      console.log('=== CV Görüntüle Tıklandı ===');
+      console.log('Aday ID:', candidate.applicant_id);
+      console.log('================================');
+
+      setIsLoadingPdf(true);
+
+      // API çağrısını yap
+      const response = await getResumeRankings(candidate.application_id);
+
+      console.log('=== API Yanıtı ===');
+      console.log('Response:', response);
+      console.log('==================');
+
+      // Base64 PDF verisini al
+      if (response.data && response.data) {
+        // Base64 verisini PDF blob URL'ine çevir
+        const base64Data = response.data;
+
+        // Base64'ü binary'ye çevir
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // Blob oluştur
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        setPdfData(url);
+        setShowPdf(true);
+
+        console.log('PDF URL oluşturuldu:', url);
+      } else {
+        console.error('PDF verisi bulunamadı');
+      }
+
+    } catch (error) {
+      console.error('=== CV Görüntüle Hatası ===');
+      console.error('Aday ID:', candidate.applicant_id);
+      console.error('Hata:', error);
+      console.error('==========================');
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
+
+  const handleClosePdf = () => {
+    setShowPdf(false);
+    if (pdfData) {
+      URL.revokeObjectURL(pdfData); // Memory leak'i önlemek için URL'yi temizle
+      setPdfData(null);
+    }
+  };
+
+  const candidateName = extractNameFromCV(candidate.parsed_resume_data);
+
+  return (
+    <div className="space-y-4">
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                {candidateName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold">{candidateName}</CardTitle>
+                <CardDescription className="flex items-center gap-2 mt-1">
+                  <User className="h-3 w-3" />
+                  <span className="text-xs">ID: {candidate.applicant_id}</span>
+                </CardDescription>
+              </div>
+            </div>
+            <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreColor(candidate.ranking_score)}`}>
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3" />
+                {Math.round(candidate.ranking_score * 100)}%
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-4">
+            {/* Eşleşme durumu */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={getScoreColor(candidate.ranking_score)}>
+                {getScoreText(candidate.ranking_score)}
+              </Badge>
+              <Badge variant="secondary">
+                {candidate.total_years_experience} yıl deneyim
+              </Badge>
+            </div>
+
+            {/* Temel bilgiler */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>Başvuru: {formatDate(candidate.application_date)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <FileText className="h-3 w-3" />
+                <span>Durum: {candidate.status === 'RECEIVED' ? 'Başvurulmuş' : candidate.status}</span>
+              </div>
+            </div>
+
+            {/* Eğitim bilgileri */}
+            {candidate.education_history?.length > 0 && (
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                {candidate.education_history.map((edu: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <GraduationCap className="h-3 w-3" />
+                    <span>
+                      {edu.degree} - {edu.institution}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tüm deneyimler */}
+            {candidate.work_experience?.length > 0 && (
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                {candidate.work_experience.map((exp: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Briefcase className="h-3 w-3" />
+                    <span>
+                      {exp.job_title} ({formatDate(exp.start_date)} - {formatDate(exp.end_date)})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Yetenekler */}
+            {candidate.parsed_skills.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Code className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Yetenekler</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {candidate.parsed_skills.slice(0, 6).map((skill, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {skill}
+                    </Badge>
+                  ))}
+                  {candidate.parsed_skills.length > 6 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{candidate.parsed_skills.length - 6} daha
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Aksiyon butonları */}
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={handleViewCV}
+                disabled={isLoadingPdf}
+              >
+                {isLoadingPdf ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Yükleniyor...
+                  </div>
+                ) : (
+                  'CV\'yi Görüntüle'
+                )}
+              </Button>
+              {showPdf && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleClosePdf}
+                >
+                  PDF'yi Kapat
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* PDF Görüntüleyici */}
+      {showPdf && pdfData && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">{candidateName} - CV</CardTitle>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleClosePdf}
+              >
+                ✕
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full h-[800px] border rounded-lg overflow-hidden">
+              <iframe
+                src={pdfData}
+                width="100%"
+                height="100%"
+                title={`${candidateName} CV`}
+                className="border-0"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
 export default function JobDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { addCandidate, getCandidatesForJob } = useApp();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
   const [isJobLoading, setIsJobLoading] = useState(true);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
 
   const jobId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const candidates = jobId ? getCandidatesForJob(jobId) : [];
 
   useEffect(() => {
     if (!jobId) {
@@ -83,7 +398,18 @@ export default function JobDetailPage() {
       }
     };
 
+    const getCandidatesForJob = async () => {
+      try {
+        const response = await getRankings(jobId);
+        setCandidates(response.data as Candidate[]);
+      } catch (error) {
+        console.error("Error fetching candidates:", error);
+        // Adayları yüklerken hata olsa bile, iş ilanını göstermeye devam et
+      }
+    };
+
     fetchJob();
+    getCandidatesForJob();
   }, [jobId]);
 
   const handleFileUpload = async (cvDataUri: string, file: File) => {
@@ -91,50 +417,33 @@ export default function JobDetailPage() {
 
     setIsLoading(true);
     try {
-      // İş tanımını daha kapsamlı bir şekilde hazırlayalım
-      const fullJobDescription = `
-Pozisyon: ${job.title}
-Şirket: ${job.company_name}
-Lokasyon: ${job.location}
-Çalışma Türü: ${EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type}
-Seviye: ${SENIORITY_LEVEL_LABELS[job.seniority_level] || job.seniority_level}
+      // Send to ranking API after successful upload
+      try {
+        const rankingResult = await sendToRankingAPI(job.job_id, file);
+        console.log('Ranking API response:', rankingResult);
 
-Açıklama:
-${job.description}
+        // Adayları yeniden yükle
+        const response = await getRankings(job.job_id);
+        setCandidates(response.data as Candidate[]);
 
-Sorumluluklar:
-${job.responsibilities.join('\n')}
-
-Gerekli Yetenekler:
-${job.required_skills.join('\n')}
-
-Nitelikler:
-${job.qualifications.join('\n')}
-      `.trim();
-
-      const result = await matchCandidate({
-        jobDescription: fullJobDescription,
-        cvDataUri,
-      });
-
-      addCandidate({
-        jobId: job.job_id,
-        fileName: file.name,
-        cvDataUri,
-        matchScore: result.matchScore,
-        reasoning: result.reasoning,
-      });
-
-      toast({
-        title: "Aday Eşleşti",
-        description: `${file.name} analiz edildi. Eşleşme skoru: ${Math.round(result.matchScore * 100)}%`,
-      });
+        toast({
+          title: "CV İşlendi",
+          description: `${file.name} başarıyla analiz edildi ve sıralandı.`,
+        });
+      } catch (rankingError) {
+        console.error("Ranking API failed:", rankingError);
+        toast({
+          variant: "destructive",
+          title: "Sıralama Hatası",
+          description: "CV analiz edilirken bir hata oluştu. Lütfen tekrar deneyin.",
+        });
+      }
     } catch (error) {
-      console.error("AI matching failed:", error);
+      console.error("File upload failed:", error);
       toast({
         variant: "destructive",
-        title: "Analiz Başarısız",
-        description: "CV analiz edilirken bir hata oluştu. Lütfen tekrar deneyin.",
+        title: "Yükleme Başarısız",
+        description: "CV yüklenirken bir hata oluştu. Lütfen tekrar deneyin.",
       });
     } finally {
       setIsLoading(false);
@@ -303,15 +612,26 @@ ${job.qualifications.join('\n')}
         <div className="lg:col-span-2">
           <Card className="min-h-full">
             <CardHeader>
-              <CardTitle className="font-headline">Eşleşen Adaylar</CardTitle>
-              <CardDescription>Bu pozisyona başvuran adaylar, eşleşme skoruna göre sıralanmıştır.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-headline">Eşleşen Adaylar</CardTitle>
+                  <CardDescription>Bu pozisyona başvuran adaylar, eşleşme skoruna göre sıralanmıştır.</CardDescription>
+                </div>
+                {candidates.length > 0 && (
+                  <Badge variant="secondary">
+                    {candidates.length} aday
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {candidates.length > 0 ? (
                 <div className="space-y-4">
-                  {candidates.map((candidate) => (
-                    <CandidateCard key={candidate.id} candidate={candidate} />
-                  ))}
+                  {candidates
+                    .sort((a, b) => b.ranking_score - a.ranking_score) // Skora göre sırala
+                    .map((candidate) => (
+                      <CandidateCard key={candidate.application_id} candidate={candidate} />
+                    ))}
                 </div>
               ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-lg flex flex-col items-center justify-center h-full">

@@ -63,23 +63,3 @@ export const deleteJob = (id: string): Promise<AxiosResponse<void>> => {
     return apiClient.delete(`/jobs/${id}`);
 };
 
-// Job search
-export const searchJobs = (query: string, filters?: {
-    seniority_level?: string;
-    employment_type?: string;
-    location?: string;
-}): Promise<AxiosResponse<JobsListResponse>> => {
-    return apiClient.get('/jobs/search', {
-        params: { q: query, ...filters }
-    });
-};
-
-// Get jobs by company
-export const getJobsByCompany = (companyName: string): Promise<AxiosResponse<JobsListResponse>> => {
-    return apiClient.get(`/jobs/company/${encodeURIComponent(companyName)}`);
-};
-
-// Apply to job (if you have this endpoint)
-export const applyToJob = (jobId: string, applicationData: any): Promise<AxiosResponse<any>> => {
-    return apiClient.post(`/jobs/${jobId}/apply`, applicationData);
-};
