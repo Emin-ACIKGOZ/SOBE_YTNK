@@ -24,7 +24,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  reactStrictMode: true
+  reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_API_BASEURL: 'http://localhost:8000',
+  },
 };
 
 export default nextConfig;

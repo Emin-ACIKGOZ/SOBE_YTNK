@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,49 +13,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
+import { signup } from "@/lib/api/auth";
 import Swal from "sweetalert2";
-import { login } from "@/lib/api/auth";
-import Cookies from "js-cookie";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const sessionExpired = searchParams.get("sessionExpired");
-
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("HR");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (sessionExpired) {
-      Swal.fire({
-        icon: "warning",
-        title: "Oturumunuzun süresi doldu!",
-        text: "Lütfen tekrar giriş yapın.",
-        timer: 2000,
-        timerProgressBar: true,
-      });
-
-      // Query param'ı temizle
-      const url = new URL(window.location.href);
-      url.searchParams.delete("sessionExpired");
-      window.history.replaceState(null, "", url.toString());
-    }
-  }, [sessionExpired]);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await login({ username, password });
+      const res = await signup({ username, email, role, password });
 
       if (!res.ok) {
         const err = await res.json();
         const msg =
           err?.detail && Array.isArray(err.detail) && err.detail[0]?.msg
             ? err.detail[0].msg
-            : err?.detail || "Giriş başarısız!";
+            : err?.detail || "Kayıt başarısız!";
 
         await Swal.fire({
           icon: "warning",
@@ -67,31 +48,22 @@ export default function LoginPage() {
         throw new Error(msg);
       }
 
-      const data = await res.json();
-      console.log("Login başarılı, token:", data);
-
-      sessionStorage.setItem("access_token", data.access_token);
-      sessionStorage.setItem("token_type", data.token_type);
-      Cookies.set("access_token", data.access_token, { expires: 1 });
-
       await Swal.fire({
         icon: "success",
         title: "Başarılı!",
-        text: "Giriş başarılı!",
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
+        text: "Kayıt işleminiz tamamlandı!",
+        confirmButtonText: "Giriş Yap",
       });
 
-      router.push("/jobs");
+      router.push("/login");
     } catch (err: any) {
       const msg =
         err?.message ||
         (err?.detail && Array.isArray(err.detail) && err.detail[0]?.msg
           ? err.detail[0].msg
-          : "Giriş başarısız!");
+          : "Kayıt başarısız!");
       setError(msg);
-      console.error("Login error:", err);
+      console.error("Signup error:", err);
     }
   };
 
@@ -101,22 +73,31 @@ export default function LoginPage() {
         <CardHeader className="items-center text-center">
           <Logo />
           <CardTitle className="text-2xl font-headline mt-2">
-            SÖBE İK Yönetim Sistemi Giriş
+            SÖBE İK Yönetim Sistemi Kayıt Ol
           </CardTitle>
           <CardDescription>
-            Hesabınıza erişmek için kullanıcı adınızı ve şifrenizi girin.
+            Hesabınızı oluşturmak için bilgileri girin.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="grid gap-4">
+          <form onSubmit={handleSignup} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="username">Kullanıcı Adı</Label>
               <Input
                 id="username"
-                type="text"
-                placeholder="kullaniciadi"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">E-posta</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -132,15 +113,9 @@ export default function LoginPage() {
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full">
-              Giriş Yap
+              Kayıt Ol
             </Button>
           </form>
-          <Button
-            onClick={() => router.push("/signup")}
-            className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            Kayıt Ol
-          </Button>
         </CardContent>
       </Card>
     </div>

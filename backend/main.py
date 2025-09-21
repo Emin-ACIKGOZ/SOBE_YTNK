@@ -6,6 +6,7 @@ to expose the application's endpoints.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from backend.api.routers import (
     applicant_router,
     application_router,
@@ -19,6 +20,19 @@ app = FastAPI(
     title="MAIN YTNK API",
     version="0.5.0",
     description="An API for tracking job applications.",
+)
+
+origins = [
+    "http://localhost:9002",  # frontend adresin
+    # "http://localhost:3000", başka frontend varsa
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # izin verilen frontendler
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(application_router.router)
