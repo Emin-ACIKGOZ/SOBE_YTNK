@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from backend.api.api_dependencies import get_db, get_current_active_user
 from backend.crud import application_crud as crud_applications
+from backend.services import application_recalculation_service as recalculate_service
 from backend.schemas import application_schema as schemas_applications
 from backend.schemas.user_schema import User as UserSchema
 from backend.schemas.enum_schema import ApplicationStatus
@@ -91,3 +92,54 @@ def update_application_status(
     return crud_applications.update_application_status(
         db=db, db_application=db_application, status=new_status.value
     )
+
+
+@router.post(
+    "/{application_id}/recalculate-rank",
+    response_model=schemas_applications.Application,
+)
+def recalculate_single_application_rank(
+    application_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
+):
+    """
+    Triggers a recalculation of the ranking score for a single application
+    via the service layer.
+    """
+    return recalculate_service.recalculate_single_application_score_service(
+        db=db, application_id=application_id
+    )
+
+
+@router.post(
+    "/by-job/{job_id}/recalculate-ranks",
+    response_model=List[schemas_applications.Application],
+)
+def recalculate_applications_for_job_rank(
+    job_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
+):
+    """
+    Triggers a recalculation of the ranking score for ALL applications under a specific job ID
+    via the service layer.
+    """
+    return recalculate_service.recalculate_applications_for_job_service(
+        db=db, job_id=job_id
+    )
+
+
+@router.post(
+    "/recalculate-all-ranks",
+    response_model=List[schemas_applications.Application],
+)
+def recalculate_all_applications_rank(
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
+):
+    """
+    Triggers a recalculation of the ranking score for ALL applications in the database
+     via the service layer. (WARNING: This can be a long-running process).
+    """
+    return recalculate_service.recalculate_all_application_scores_service(db=db)

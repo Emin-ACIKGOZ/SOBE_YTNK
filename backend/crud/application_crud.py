@@ -107,3 +107,13 @@ def update_application_ranking_score(
         db.refresh(db_application)
         return db_application
     return None
+
+
+def bulk_update_ranking_scores(db: Session, applications: List[Application]):
+    """
+    Utility function to bulk save updated scores on a list of Application objects.
+    This provides the necessary persistence method for the orchestration service.
+    """
+    db.bulk_save_objects(applications)
+    db.commit()
+    return applications
