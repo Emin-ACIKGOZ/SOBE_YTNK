@@ -10,11 +10,12 @@ import logging
 import os
 import shutil
 import uuid
+import base64
 from typing import List
 from io import BytesIO
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from backend.api.api_dependencies import get_db, get_current_active_user
@@ -155,7 +156,8 @@ async def get_resume_pdf(
     _current_user: UserSchema = Depends(get_current_active_user),
 ):
     """
-    Retrieves the original PDF resume file for a given application.
+    Retrieves the original PDF resume file for a given application,
+    encoded in base64.
     """
     application = crud_applications.get_application(db, application_id=application_id)
     if not application or not application.resume_file_path:
@@ -170,6 +172,12 @@ async def get_resume_pdf(
             detail="Resume file not found on disk.",
         )
 
-    return FileResponse(
-        file_path, media_type="application/pdf", filename=os.path.basename(file_path)
-    )
+    # Read the file in binary mode
+    with open(file_path, "rb") as file:
+        file_content = file.read()
+
+    # Encode the binary content to base64
+    base64_encoded_content = base64.b64encode(file_content)
+
+    # Return the base64 string as a JSON response
+    return JSONResponse(content=base64_encoded_content.decode("utf-8"))

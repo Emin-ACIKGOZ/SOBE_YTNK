@@ -157,22 +157,13 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
       console.log('Response:', response);
       console.log('==================');
 
-      if (response.data && response.data) {
+      if (response.data) {
         const base64Data = response.data;
-
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-
-        setPdfData(url);
+        const dataUri = `data:application/pdf;base64,${base64Data}`;
+        setPdfData(dataUri);
         setShowPdf(true);
 
-        console.log('PDF URL oluşturuldu:', url);
+        console.log('PDF URL oluşturuldu:', dataUri);
       } else {
         console.error('PDF verisi bulunamadı');
       }
@@ -190,7 +181,6 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
   const handleClosePdf = () => {
     setShowPdf(false);
     if (pdfData) {
-      URL.revokeObjectURL(pdfData);
       setPdfData(null);
     }
   };
@@ -344,29 +334,20 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
             <div className="flex gap-2 pt-2 border-t">
               <Button
                 size="sm"
-                variant="outline"
                 className="flex-1"
-                onClick={handleViewCV}
+                variant={showPdf ? "secondary" : "outline"}
+                onClick={showPdf ? handleClosePdf : handleViewCV}
                 disabled={isLoadingPdf}
               >
-                {isLoadingPdf ? (
+                {isLoadingPdf && !showPdf ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Yükleniyor...
                   </div>
                 ) : (
-                  'CV\'yi Görüntüle'
+                  showPdf ? "PDF'yi Kapat" : "CV'yi Görüntüle"
                 )}
               </Button>
-              {showPdf && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleClosePdf}
-                >
-                  PDF'yi Kapat
-                </Button>
-              )}
             </div>
           </div>
         </CardContent>
@@ -378,13 +359,6 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">{candidateName} - CV</CardTitle>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleClosePdf}
-              >
-                ✕
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
