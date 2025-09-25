@@ -6,34 +6,19 @@ import { useApp } from "@/hooks/use-app";
 import { PlusCircle, Users, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getJobs, deleteJob } from "@/lib/api";
+import { getJobs, deleteJob, JobPosting } from "@/lib/api/jobs"; 
 import Swal from 'sweetalert2';
 
-// Job tipini tanımla
-interface Job {
-  job_id: string;
-  title: string;
-  company_name: string;
-  location: string;
-  seniority_level: "INTERNSHIP" | "JUNIOR" | "MID" | "SENIOR";
-  employment_type: "FULL_TIME" | "PART_TIME" | "CONTRACT";
-  description: string;
-  responsibilities: string[];
-  qualifications: string[];
-  required_skills: string[];
-  salary: string;
-  posted_at: string;
-  is_active: boolean;
-}
 
 export default function JobsPage() {
-  const { getCandidatesForJob } = useApp(); // useApp'den getCandidatesForJob'ı al
-  const [jobPostings, setJobPostings] = useState<Job[]>([]); // Job array tipi belirt
+  const { getCandidatesForJob } = useApp();
+  const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
 
   useEffect(() => {
     getJobs().then((response) => {
-      // JobsListResponse'u unknown üzerinden Job[] tipine dönüştür
-      setJobPostings(response.data as unknown as Job[]);
+      // ✅ FIX: Correctly access the 'jobs' array from the Axios response data.
+      // Based on your backend, the response.data is the array itself.
+      setJobPostings(response.data); 
     }).catch((error) => {
       console.error("Error fetching jobs:", error);
     });
@@ -46,7 +31,7 @@ export default function JobsPage() {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Evet, sil',
-      cancelButtonText: 'Hayır, iptal et',
+      cancelButtonText: 'Hayır, iptet et',
       reverseButtons: true,
     });
 
@@ -105,7 +90,7 @@ export default function JobsPage() {
                   </Button>
                   <CardTitle className="pr-10">{job.title}</CardTitle>
                   <CardDescription>
-                    {new Date(job.posted_at).toLocaleDateString("tr-TR", {
+                    {new Date(job.posted_at ?? "").toLocaleDateString("tr-TR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric"

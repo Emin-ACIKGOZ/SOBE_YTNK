@@ -29,9 +29,16 @@ def get_job(db: Session, job_id: uuid.UUID):
 
 def get_jobs(db: Session, skip: int = 0, limit: int = 100):
     """
-    Retrieves a list of all job postings.
+    Retrieves a list of all active job postings.
     """
-    return db.query(JobPosting).offset(skip).limit(limit).all()
+    return (
+        # ✅ FIX: Use == True or the more idiomatic `JobPosting.is_active`
+        db.query(JobPosting)
+        .filter(JobPosting.is_active == True)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def update_job(db: Session, db_job: JobPosting, job_in: JobPostingUpdate):

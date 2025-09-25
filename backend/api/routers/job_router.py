@@ -57,7 +57,7 @@ def read_all_job_postings(
     skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
     """
-    Retrieve a list of all job postings with pagination.
+    Retrieve a list of all active job postings with pagination.
     """
     jobs = crud_jobs.get_jobs(db=db, skip=skip, limit=limit)
     return jobs

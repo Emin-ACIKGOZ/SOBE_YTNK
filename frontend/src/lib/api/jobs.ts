@@ -4,7 +4,7 @@ import { AxiosResponse } from 'axios';
 
 // Job Types
 export interface JobPosting {
-    id?: string;
+    job_id: string; // Corrected to match backend model
     title: string;
     company_name: string;
     location: string;
@@ -15,8 +15,9 @@ export interface JobPosting {
     qualifications: string[];
     required_skills: string[];
     salary?: string;
-    created_at?: string;
+    posted_at?: string; // Corrected to match backend model
     updated_at?: string;
+    is_active: boolean; // Added for soft-delete state tracking
 }
 
 export interface JobCreatePayload {
@@ -32,6 +33,9 @@ export interface JobCreatePayload {
     salary?: string;
 }
 
+// NOTE: Since your backend API returns an array, this structure might be slightly off.
+// Based on the *provided* code, we'll assume the /jobs/ endpoint returns an array directly,
+// but the component code suggests a wrapper object, so we'll keep the wrapper interface.
 export interface JobsListResponse {
     jobs: JobPosting[];
     total: number;
@@ -48,6 +52,7 @@ export const getJobs = (params?: {
     skip?: number;
     limit?: number;
 }): Promise<AxiosResponse<JobsListResponse>> => {
+    // The backend is fixed to filter out inactive jobs here.
     return apiClient.get('/jobs/', { params });
 };
 
@@ -60,6 +65,6 @@ export const updateJob = (id: string, jobData: Partial<JobCreatePayload>): Promi
 };
 
 export const deleteJob = (id: string): Promise<AxiosResponse<void>> => {
+    // This calls the backend's soft-delete endpoint.
     return apiClient.delete(`/jobs/${id}`);
 };
-
