@@ -100,11 +100,11 @@ const sendToRankingAPI = async (jobId: string, file: File) => {
 };
 
 // Candidate Card component
-// CandidateCard component'inin PDF görüntüleyici ile güncellenmiş hali
 const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
+  const [isSkillsListOpen, setIsSkillsListOpen] = useState(false);
 
   // CV'den adayın ismini çıkarma fonksiyonu
   const extractNameFromCV = (cvData: string): string => {
@@ -145,33 +145,27 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
 
   const handleViewCV = async () => {
     try {
-      // Hangi adayın CV'sine tıklandığını log'la
       console.log('=== CV Görüntüle Tıklandı ===');
       console.log('Aday ID:', candidate.applicant_id);
       console.log('================================');
 
       setIsLoadingPdf(true);
 
-      // API çağrısını yap
       const response = await getResumeRankings(candidate.application_id);
 
       console.log('=== API Yanıtı ===');
       console.log('Response:', response);
       console.log('==================');
 
-      // Base64 PDF verisini al
       if (response.data && response.data) {
-        // Base64 verisini PDF blob URL'ine çevir
         const base64Data = response.data;
 
-        // Base64'ü binary'ye çevir
         const binaryString = atob(base64Data);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
 
-        // Blob oluştur
         const blob = new Blob([bytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
 
@@ -196,12 +190,26 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
   const handleClosePdf = () => {
     setShowPdf(false);
     if (pdfData) {
-      URL.revokeObjectURL(pdfData); // Memory leak'i önlemek için URL'yi temizle
+      URL.revokeObjectURL(pdfData);
       setPdfData(null);
     }
   };
 
   const candidateName = extractNameFromCV(candidate.parsed_resume_data);
+
+  // Yetenekleri ayırma
+  const visibleSkills = candidate.parsed_skills.slice(0, 6);
+  const hiddenSkills = candidate.parsed_skills.slice(6);
+  const shouldShowToggleButton = candidate.parsed_skills.length > 6;
+
+  const toggleSkills = () => {
+    setIsSkillsListOpen(!isSkillsListOpen);
+  };
+
+  // Dinamik geçiş sürelerini belirlemek için stil hesaplaması
+  const transitionDuration = isSkillsListOpen
+    ? 'max-height 500ms ease-in-out, opacity 500ms ease-in-out' // Fade In (500ms)
+    : 'max-height 250ms ease-in-out, opacity 250ms ease-in-out'; // Fade Out (250ms)
 
   return (
     <div className="space-y-4">
@@ -288,14 +296,44 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
                   <span className="text-xs font-medium text-muted-foreground">Yetenekler</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {candidate.parsed_skills.slice(0, 6).map((skill, index) => (
+                  {/* Her zaman görünür olan ilk 6 yetenek */}
+                  {visibleSkills.map((skill, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {skill}
                     </Badge>
                   ))}
-                  {candidate.parsed_skills.length > 6 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{candidate.parsed_skills.length - 6} daha
+
+                  {/* Yeni eklenen/gizlenen yetenekler ve animasyon */}
+                  {hiddenSkills.length > 0 && (
+                    <div
+                      className={`
+                        flex flex-wrap gap-1 overflow-hidden
+                      `}
+                      style={{
+                        // Değişiklik: Transition süresi duruma göre dinamik ayarlandı
+                        transition: transitionDuration,
+                        maxHeight: isSkillsListOpen ? '500px' : '0px',
+                        opacity: isSkillsListOpen ? '1' : '0',
+                        pointerEvents: isSkillsListOpen ? 'auto' : 'none',
+                      }}
+                    >
+                      {/* Animasyon için DOM'da kalması gerekir */}
+                      {hiddenSkills.map((skill, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Göster/Gizle butonu */}
+                  {shouldShowToggleButton && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs cursor-pointer"
+                      onClick={toggleSkills}
+                    >
+                      {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
                     </Badge>
                   )}
                 </div>
@@ -401,7 +439,9 @@ export default function JobDetailPage() {
     const getCandidatesForJob = async () => {
       try {
         const response = await getRankings(jobId);
-        setCandidates(response.data as Candidate[]);
+        // Skora göre sırala
+        const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
+        setCandidates(sortedCandidates);
       } catch (error) {
         console.error("Error fetching candidates:", error);
         // Adayları yüklerken hata olsa bile, iş ilanını göstermeye devam et
@@ -424,7 +464,9 @@ export default function JobDetailPage() {
 
         // Adayları yeniden yükle
         const response = await getRankings(job.job_id);
-        setCandidates(response.data as Candidate[]);
+        // Skora göre sırala
+        const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
+        setCandidates(sortedCandidates);
 
         toast({
           title: "CV İşlendi",
@@ -628,7 +670,6 @@ export default function JobDetailPage() {
               {candidates.length > 0 ? (
                 <div className="space-y-4">
                   {candidates
-                    .sort((a, b) => b.ranking_score - a.ranking_score) // Skora göre sırala
                     .map((candidate) => (
                       <CandidateCard key={candidate.application_id} candidate={candidate} />
                     ))}
