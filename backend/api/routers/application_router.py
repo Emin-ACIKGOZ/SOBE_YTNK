@@ -39,6 +39,17 @@ def create_new_application(
     return crud_applications.create_application(db=db, application=application)
 
 
+@router.get("/", response_model=List[schemas_applications.Application])
+def read_all_applications(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
+    """
+    Retrieves a list of all applications with pagination.
+    """
+    applications = crud_applications.get_applications(db=db, skip=skip, limit=limit)
+    return applications
+
+
 @router.get("/{application_id}", response_model=schemas_applications.Application)
 def read_application(
     application_id: uuid.UUID,
@@ -71,6 +82,22 @@ def read_applications_by_applicant(
     applications = crud_applications.get_applications_by_applicant(
         db=db, applicant_id=applicant_id
     )
+    return applications
+
+
+@router.get(
+    "/by-job/{job_id}",
+    response_model=List[schemas_applications.Application],
+)
+def read_applications_for_job(
+    job_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _current_user: UserSchema = Depends(get_current_active_user),
+):
+    """
+    Retrieves a list of applications for a specific job ID.
+    """
+    applications = crud_applications.get_applications_for_job(db=db, job_id=job_id)
     return applications
 
 

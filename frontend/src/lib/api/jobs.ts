@@ -1,4 +1,3 @@
-// lib/api/jobs.ts - Jobs API
 import apiClient from './base';
 import { AxiosResponse } from 'axios';
 
@@ -48,10 +47,11 @@ export const createJob = (jobData: JobCreatePayload): Promise<AxiosResponse<JobP
     return apiClient.post('/jobs/', jobData);
 };
 
+// ✅ FIX: The return type is now Promise<AxiosResponse<JobPosting[]>> to match the backend.
 export const getJobs = (params?: {
     skip?: number;
     limit?: number;
-}): Promise<AxiosResponse<JobsListResponse>> => {
+}): Promise<AxiosResponse<JobPosting[]>> => {
     // The backend is fixed to filter out inactive jobs here.
     return apiClient.get('/jobs/', { params });
 };

@@ -11,13 +11,12 @@ import Swal from 'sweetalert2';
 
 
 export default function JobsPage() {
-  const { getCandidatesForJob } = useApp();
+  const { getApplicationsForJob } = useApp();
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
 
   useEffect(() => {
     getJobs().then((response) => {
-      // ✅ FIX: Correctly access the 'jobs' array from the Axios response data.
-      // Based on your backend, the response.data is the array itself.
+      // ✅ FIX: Access the jobs array directly from the Axios response data.
       setJobPostings(response.data); 
     }).catch((error) => {
       console.error("Error fetching jobs:", error);
@@ -76,7 +75,7 @@ export default function JobsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {jobPostings.map((job) => {
-            const candidateCount = getCandidatesForJob(job.job_id).length;
+            const candidateCount = getApplicationsForJob(job.job_id).length;
             return (
               <Card key={job.job_id} className="flex flex-col transition-shadow hover:shadow-lg">
                 <CardHeader className="relative">
