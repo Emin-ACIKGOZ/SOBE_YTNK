@@ -9,7 +9,17 @@ import { CvUpload } from "@/components/cv-upload";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getJob } from "@/lib/api";
+import { updateApplicationStatus, Application } from "@/lib/api/applications";
 import { getRankings, getResumeRankings, ranking } from "@/lib/api/ranking";
 import { ArrowLeft, Briefcase, Building2, Calendar, Clock, Code, DollarSign, FileText, GraduationCap, Loader2, MapPin, Star, User, Users } from "lucide-react";
 
@@ -87,24 +97,22 @@ const SENIORITY_LEVEL_LABELS: Record<string, string> = {
   'MANAGER': 'Manager'
 };
 
-const sendToRankingAPI = async (jobId: string, file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await ranking(jobId, file);
-
-  if (response.status != 201) {
-    throw new Error(`Ranking API error: ${response.status} ${response.statusText}`);
-  }
-
-  return await response.data;
+const STATUS_LABELS: Record<string, string> = {
+  'RECEIVED': 'Başvuru Alındı',
+  'IN_REVIEW': 'İncelemede',
+  'SHORTLISTED': 'Kısa Listede',
+  'HIRED': 'İşe Alındı',
+  'REJECTED': 'Reddedildi',
 };
 
 // Candidate Card component
-const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
+const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; onStatusChange: (applicationId: string, newStatus: string) => void }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
   const [isSkillsListOpen, setIsSkillsListOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   // CV'den adayın ismini çıkarma fonksiyonu
   const extractNameFromCV = (cvData: string): string => {
@@ -157,8 +165,10 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
       console.log('Response:', response);
       console.log('==================');
 
-      if (response.data) {
-        const base64Data = response.data;
+      // The API returns a Base64 string directly.
+      const base64Data = response.data;
+
+      if (base64Data) {
         const dataUri = `data:application/pdf;base64,${base64Data}`;
         setPdfData(dataUri);
         setShowPdf(true);
@@ -166,6 +176,11 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
         console.log('PDF URL oluşturuldu:', dataUri);
       } else {
         console.error('PDF verisi bulunamadı');
+        toast({
+          variant: "destructive",
+          title: "PDF Yükleme Hatası",
+          description: "PDF verisi bulunamadı. Lütfen tekrar deneyin.",
+        });
       }
 
     } catch (error) {
@@ -173,6 +188,11 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
       console.error('Aday ID:', candidate.applicant_id);
       console.error('Hata:', error);
       console.error('==========================');
+      toast({
+        variant: "destructive",
+        title: "PDF Yükleme Hatası",
+        description: "CV yüklenirken bir hata oluştu. Lütfen tekrar deneyin.",
+      });
     } finally {
       setIsLoadingPdf(false);
     }
@@ -182,6 +202,25 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
     setShowPdf(false);
     if (pdfData) {
       setPdfData(null);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateApplicationStatus(candidate.application_id, newStatus as Application['status']);
+      toast({
+        title: "Durum Güncellendi",
+        description: `Adayın durumu başarıyla "${STATUS_LABELS[newStatus]}" olarak güncellendi.`,
+      });
+      setIsDialogOpen(false);
+      onStatusChange(candidate.application_id, newStatus);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        title: "Durum Güncelleme Hatası",
+        description: "Durum güncellenirken bir hata oluştu. Lütfen tekrar deneyin.",
+      });
     }
   };
 
@@ -246,7 +285,7 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <FileText className="h-3 w-3" />
-                <span>Durum: {candidate.status === 'RECEIVED' ? 'Başvurulmuş' : candidate.status}</span>
+                <span>Durum: {STATUS_LABELS[candidate.status] || candidate.status}</span>
               </div>
             </div>
 
@@ -332,22 +371,66 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
 
             {/* Aksiyon butonları */}
             <div className="flex gap-2 pt-2 border-t">
-              <Button
-                size="sm"
-                className="flex-1"
-                variant={showPdf ? "secondary" : "outline"}
-                onClick={showPdf ? handleClosePdf : handleViewCV}
-                disabled={isLoadingPdf}
-              >
-                {isLoadingPdf && !showPdf ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Yükleniyor...
-                  </div>
-                ) : (
-                  showPdf ? "PDF'yi Kapat" : "CV'yi Görüntüle"
-                )}
-              </Button>
+              {showPdf ? (
+                // Show only the "Close PDF" button when PDF is open, and make it full width
+                <Button
+                  size="sm"
+                  className="w-full"
+                  variant="secondary"
+                  onClick={handleClosePdf}
+                >
+                  PDF'yi Kapat
+                </Button>
+              ) : (
+                // Show both buttons when PDF is not open
+                <>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    variant="outline"
+                    onClick={handleViewCV}
+                    disabled={isLoadingPdf}
+                  >
+                    {isLoadingPdf ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Yükleniyor...
+                      </div>
+                    ) : (
+                      "CV'yi Görüntüle"
+                    )}
+                  </Button>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="flex-1">
+                        Durum Değiştir
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Başvuru Durumunu Güncelle</DialogTitle>
+                        <DialogDescription>
+                          {candidateName} adlı adayın başvuru durumunu buradan değiştirebilirsiniz.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4 space-y-4">
+                        <Select onValueChange={handleStatusChange} value={candidate.status}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Durum Seçin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                              <SelectItem key={key} value={key}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
@@ -431,29 +514,19 @@ export default function JobDetailPage() {
 
     setIsLoading(true);
     try {
-      // Send to ranking API after successful upload
-      try {
-        const rankingResult = await sendToRankingAPI(job.job_id, file);
-        console.log('Ranking API response:', rankingResult);
+      const rankingResult = await ranking(job.job_id, file);
+      console.log('Ranking API response:', rankingResult);
 
-        // Adayları yeniden yükle
-        const response = await getRankings(job.job_id);
-        // Skora göre sırala
-        const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
-        setCandidates(sortedCandidates);
+      // Adayları yeniden yükle
+      const response = await getRankings(job.job_id);
+      // Skora göre sırala
+      const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
+      setCandidates(sortedCandidates);
 
-        toast({
-          title: "CV İşlendi",
-          description: `${file.name} başarıyla analiz edildi ve sıralandı.`,
-        });
-      } catch (rankingError) {
-        console.error("Ranking API failed:", rankingError);
-        toast({
-          variant: "destructive",
-          title: "Sıralama Hatası",
-          description: "CV analiz edilirken bir hata oluştu. Lütfen tekrar deneyin.",
-        });
-      }
+      toast({
+        title: "CV İşlendi",
+        description: `${file.name} başarıyla analiz edildi ve sıralandı.`,
+      });
     } catch (error) {
       console.error("File upload failed:", error);
       toast({
@@ -464,6 +537,14 @@ export default function JobDetailPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleStatusChange = (applicationId: string, newStatus: string) => {
+    setCandidates(prevCandidates =>
+      prevCandidates.map(c =>
+        c.application_id === applicationId ? { ...c, status: newStatus } : c
+      )
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -645,7 +726,11 @@ export default function JobDetailPage() {
                 <div className="space-y-4">
                   {candidates
                     .map((candidate) => (
-                      <CandidateCard key={candidate.application_id} candidate={candidate} />
+                      <CandidateCard
+                        key={candidate.application_id}
+                        candidate={candidate}
+                        onStatusChange={handleStatusChange}
+                      />
                     ))}
                 </div>
               ) : (
