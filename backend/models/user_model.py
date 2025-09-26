@@ -32,4 +32,4 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), nullable=False)  
+    role = Column(Enum(UserRole), nullable=False)

@@ -50,7 +50,7 @@ def signup_user(user_in: UserCreate, db: Session = Depends(get_db)):
     Registers a new user.
     """
     db_user = crud_users.get_user_by_username(db, username=user_in.username)
-    
+
     if db_user:
         raise HTTPException(
             status_code=400, detail="Username or email already registered"

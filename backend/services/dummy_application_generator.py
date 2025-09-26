@@ -17,9 +17,6 @@ from backend.schemas.application_schema import (
 from backend.schemas.applicant_schema import Applicant
 from backend.schemas.work_experience_schema import WorkExperience
 from backend.schemas.education_history_schema import EducationHistory
-
-# NOTE: The _calculate_total_experience function is assumed to be
-# correctly implemented in resume_parsing_service.
 from backend.services.resume_parsing_service import _calculate_total_experience
 
 # --- English Resume Data Pools ---
@@ -564,10 +561,12 @@ def generate_work_experience(
     end_year = current_year
     for _ in range(num_jobs):
         start_year = end_year - random.randint(1, 5)
+
         # Generate a datetime.date object
         start_date_obj = date(start_year, random.randint(1, 12), 1)
 
         end_date_obj = None
+
         # Set end_date to a date object or None for 'present'
         if _ == 0 and random.random() > 0.5:
             end_date_obj = None

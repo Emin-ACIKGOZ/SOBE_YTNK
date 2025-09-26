@@ -52,5 +52,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-# This is a basic implementation. For production, you would also want to handle
+# This is a basic implementation. 
+# For production, you would also want to handle
 # token expiration and potentially refresh tokens.

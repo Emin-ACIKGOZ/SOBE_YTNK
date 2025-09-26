@@ -23,8 +23,7 @@ app = FastAPI(
 )
 
 origins = [
-    "http://localhost:9002",  # frontend adresin
-    # "http://localhost:3000", başka frontend varsa
+    "http://localhost:9002",  # frontend adresi
 ]
 
 app.add_middleware(
@@ -39,7 +38,7 @@ app.include_router(application_router.router)
 app.include_router(job_router.router)
 app.include_router(applicant_router.router)
 app.include_router(auth_router.router)
-app.include_router(ranking_router.router) 
+app.include_router(ranking_router.router)
 
 
 if __name__ == "__main__":
