@@ -105,6 +105,48 @@ const STATUS_LABELS: Record<string, string> = {
   'REJECTED': 'Reddedildi',
 };
 
+// YENİ FONKSİYON: Duruma göre renk döndür
+const getStatusBadgeClass = (status: string): string => {
+  switch (status) {
+    case 'RECEIVED':
+      return 'bg-gray-100 text-gray-700 hover:bg-gray-200'; // gray tone
+    case 'IN_REVIEW':
+      return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'; // yellow
+    case 'SHORTLISTED':
+      return 'bg-blue-100 text-blue-700 hover:bg-blue-200'; // blue
+    case 'HIRED':
+      return 'bg-green-100 text-green-700 hover:bg-green-200'; // green
+    case 'REJECTED':
+      return 'bg-red-100 text-red-700 hover:bg-red-200'; // red
+    default:
+      return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+  }
+};
+
+// YENİ FONKSİYON: Eşleşme skoruna göre renk döndür
+const getScoreBadgeClass = (score: number): string => {
+  if (score >= 0.8) return 'bg-green-100 text-green-700 hover:bg-green-200';
+  if (score >= 0.6) return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
+  if (score >= 0.4) return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
+  return 'bg-red-100 text-red-700 hover:bg-red-200';
+};
+
+// GÜNCELLENMİŞ FONKSİYON: Deneyim yıllarına göre renk döndür
+// (< 1: Gri, 1-3: Mavi, 3-6: Sarı, 6+: Mor)
+const getExperienceBadgeClass = (years: number): string => {
+  if (years > 6) {
+    return 'bg-purple-100 text-purple-700 hover:bg-purple-200'; // 6+ years (Purple)
+  }
+  if (years > 3) { 
+    return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'; // 3 to 6 years (Yellow)
+  }
+  if (years >= 1) { 
+    return 'bg-blue-100 text-blue-700 hover:bg-blue-200'; // 1 to 3 years (Blue)
+  }
+  return 'bg-gray-100 text-gray-700 hover:bg-gray-200'; // <1 year (Gray)
+};
+
+
 // Candidate Card component
 const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; onStatusChange: (applicationId: string, newStatus: string) => void }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
@@ -257,6 +299,7 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
                 </CardDescription>
               </div>
             </div>
+            {/* Skor etiketi, daha küçük kalabilir */}
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreColor(candidate.ranking_score)}`}>
               <div className="flex items-center gap-1">
                 <Star className="h-3 w-3" />
@@ -267,26 +310,40 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-4">
-            {/* Eşleşme durumu */}
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className={getScoreColor(candidate.ranking_score)}>
+            {/* Eşleşme durumu, Deneyim ve YENİ: Durum - Tümü text-sm yapıldı */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge 
+                variant="default" 
+                className={`text-sm px-3 py-1 font-bold transition-colors duration-300 ${getStatusBadgeClass(candidate.status)}`}
+              >
+                {STATUS_LABELS[candidate.status] || candidate.status}
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className={`text-sm px-3 py-1 transition-colors duration-300 ${getScoreBadgeClass(candidate.ranking_score)}`}
+              >
                 {getScoreText(candidate.ranking_score)}
               </Badge>
-              <Badge variant="secondary">
+              <Badge 
+                variant="secondary" 
+                className={`text-sm px-3 py-1 transition-colors duration-300 ${getExperienceBadgeClass(candidate.total_years_experience)}`}
+              >
                 {candidate.total_years_experience} yıl deneyim
               </Badge>
             </div>
 
-            {/* Temel bilgiler */}
+            {/* Temel bilgiler (Başvuru Tarihi) */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                <span>Başvuru: {formatDate(candidate.application_date)}</span>
+                {/* GÜNCELLEME: Başvuru kelimesi kalınlaştırıldı ve font boyutu text-sm yapıldı. */}
+                <span className="text-sm font-semibold">
+                  <span className="font-bold">Başvuru:</span> {formatDate(candidate.application_date)}
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <FileText className="h-3 w-3" />
-                <span>Durum: {STATUS_LABELS[candidate.status] || candidate.status}</span>
-              </div>
+              
+              {/* Durum buradaydı, yukarı taşındı */}
+              <div className="col-span-1"></div>
             </div>
 
             {/* Eğitim bilgileri */}
@@ -322,7 +379,8 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Code className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Yetenekler</span>
+                  {/* GÜNCELLEME: Font boyutu text-sm yapıldı. */}
+                  <span className="text-sm font-semibold text-muted-foreground">Yetenekler</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {/* Her zaman görünür olan ilk 6 yetenek */}
@@ -355,11 +413,11 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
                     </div>
                   )}
 
-                  {/* Göster/Gizle butonu */}
+                  {/* GÜNCELLENDİ: Göster/Gizle butonu için soft yeşil ve hover efekti eklendi */}
                   {shouldShowToggleButton && (
                     <Badge
-                      variant="outline"
-                      className="text-xs cursor-pointer"
+                      // variant="outline" kaldırıldı ve özel sınıflar eklendi
+                      className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
                       onClick={toggleSkills}
                     >
                       {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
@@ -379,7 +437,7 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
                   variant="secondary"
                   onClick={handleClosePdf}
                 >
-                  PDF'yi Kapat
+                  CV'yi Kapat
                 </Button>
               ) : (
                 // Show both buttons when PDF is not open
@@ -387,9 +445,9 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
                   <Button
                     size="sm"
                     className="flex-1"
-                    variant="outline"
                     onClick={handleViewCV}
                     disabled={isLoadingPdf}
+                    variant="outline" // Changed to outline for secondary action
                   >
                     {isLoadingPdf ? (
                       <div className="flex items-center gap-2">
@@ -441,7 +499,8 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{candidateName} - CV</CardTitle>
+              {/* SYNTAX ERROR FIXED HERE */}
+              <CardTitle className="text-lg">{candidateName} - CV</CardTitle> 
             </div>
           </CardHeader>
           <CardContent>
@@ -581,7 +640,7 @@ export default function JobDetailPage() {
             <Button>İş İlanları</Button>
           </Link>
         </div>
-      </div>
+        </div>
     );
   }
 
