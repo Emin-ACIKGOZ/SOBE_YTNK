@@ -66,7 +66,7 @@ export function CvUpload({ onFileUpload, isLoading = false }: CvUploadProps) {
       {error && <p className="text-sm text-destructive">{error}</p>}
       {isLoading && (
         <div className="flex items-center justify-center gap-2 pt-2">
-            <p className="text-sm font-medium text-muted-foreground">Analyzing candidate... this may take a moment.</p>
+          <p className="text-sm font-medium text-muted-foreground">Analyzing candidate... this may take a moment.</p>
         </div>
       )}
     </div>

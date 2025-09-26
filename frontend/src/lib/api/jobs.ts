@@ -1,24 +1,59 @@
 import apiClient from './base';
 import { AxiosResponse } from 'axios';
 
-// Job Types
+// --- İş İlanı Türleri ---
+
+/**
+ * API'den dönen tam İş İlanı (JobPosting) nesnesi için arayüz.
+ */
 export interface JobPosting {
-    job_id: string; // Corrected to match backend model
+    /** İş ilanının tekil kimliği (UUID). */
+    job_id: string;
+
+    /** İş ilanının başlığı. */
     title: string;
+
+    /** Şirket adı. */
     company_name: string;
+
+    /** Çalışma konumu. */
     location: string;
+
+    /** Deneyim seviyesi. */
     seniority_level: 'INTERNSHIP' | 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD';
+
+    /** İstihdam türü. */
     employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY';
+
+    /** İşin genel tanımı. */
     description: string;
+
+    /** Çalışanın sorumlulukları listesi. */
     responsibilities: string[];
+
+    /** Adaydan beklenen nitelikler listesi. */
     qualifications: string[];
+
+    /** Gerekli yetenekler listesi. */
     required_skills: string[];
+
+    /** Maaş bilgisi (isteğe bağlı). */
     salary?: string;
-    posted_at?: string; // Corrected to match backend model
+
+    /** İlanın yayınlanma tarihi. */
+    posted_at?: string;
+
+    /** İlanın son güncellenme tarihi. */
     updated_at?: string;
-    is_active: boolean; // Added for soft-delete state tracking
+
+    /** İlanın aktif olup olmadığını gösterir (soft-delete için). */
+    is_active: boolean;
 }
 
+/**
+ * Yeni bir iş ilanı oluşturmak için gerekli yük (payload).
+ * Sunucu tarafından üretilen alanlar (ID, tarihler, is_active) hariç tutulur.
+ */
 export interface JobCreatePayload {
     title: string;
     company_name: string;
@@ -32,39 +67,72 @@ export interface JobCreatePayload {
     salary?: string;
 }
 
-// NOTE: Since your backend API returns an array, this structure might be slightly off.
-// Based on the *provided* code, we'll assume the /jobs/ endpoint returns an array directly,
-// but the component code suggests a wrapper object, so we'll keep the wrapper interface.
+/**
+ * Tüm iş ilanları listesi API yanıtı için arayüz (Sayfalama verileri dahil).
+ */
 export interface JobsListResponse {
+    /** İş ilanı listesi. */
     jobs: JobPosting[];
+
+    /** Toplam ilan sayısı. */
     total: number;
+
+    /** Mevcut sayfa numarası. */
     page: number;
+
+    /** Sayfa başına düşen öğe sayısı. */
     per_page: number;
 }
 
-// Job API functions
+
+// --- İş İlanı API Fonksiyonları ---
+
+/**
+ * Sunucuda yeni bir iş ilanı oluşturur.
+ * * @param jobData Yeni iş ilanına ait veriler.
+ * @returns Oluşturulan İş İlanı nesnesini içeren Promise.
+ */
 export const createJob = (jobData: JobCreatePayload): Promise<AxiosResponse<JobPosting>> => {
     return apiClient.post('/jobs/', jobData);
 };
 
-// ✅ FIX: The return type is now Promise<AxiosResponse<JobPosting[]>> to match the backend.
+/**
+ * İş ilanlarının listesini sayfalama (pagination) parametreleriyle getirir.
+ * Arka planda aktif olmayan ilanları filtreler.
+ * * @param params Atlanacak (skip) ve sınırlandırılacak (limit) öğe sayıları (isteğe bağlı).
+ * @returns İş İlanı nesneleri dizisini içeren Promise.
+ */
 export const getJobs = (params?: {
     skip?: number;
     limit?: number;
 }): Promise<AxiosResponse<JobPosting[]>> => {
-    // The backend is fixed to filter out inactive jobs here.
     return apiClient.get('/jobs/', { params });
 };
 
+/**
+ * Belirtilen ID'ye sahip tek bir iş ilanını getirir.
+ * * @param id İş ilanının UUID'si.
+ * @returns İş İlanı nesnesini içeren Promise.
+ */
 export const getJob = (id: string): Promise<AxiosResponse<JobPosting>> => {
     return apiClient.get(`/jobs/${id}`);
 };
 
+/**
+ * Mevcut bir iş ilanının bilgilerini günceller.
+ * * @param id Güncellenecek iş ilanının UUID'si.
+ * @param jobData Güncellenecek alanları içeren kısmi veri.
+ * @returns Güncellenmiş İş İlanı nesnesini içeren Promise.
+ */
 export const updateJob = (id: string, jobData: Partial<JobCreatePayload>): Promise<AxiosResponse<JobPosting>> => {
     return apiClient.put(`/jobs/${id}`, jobData);
 };
 
+/**
+ * Belirtilen ID'ye sahip iş ilanını pasif hale getirir (Soft Delete).
+ * * @param id Silinecek iş ilanının UUID'si.
+ * @returns İşlem başarılıysa (204 No Content) çözümlenen Promise.
+ */
 export const deleteJob = (id: string): Promise<AxiosResponse<void>> => {
-    // This calls the backend's soft-delete endpoint.
     return apiClient.delete(`/jobs/${id}`);
 };

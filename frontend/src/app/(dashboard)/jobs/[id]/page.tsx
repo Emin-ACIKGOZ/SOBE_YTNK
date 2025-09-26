@@ -26,7 +26,6 @@ import { AppContext } from "@/context/app-context";
 import { Applicant } from "@/lib/api/applicants";
 import { Button } from "@/components/ui/button";
 
-// API'den gelen veri yapısına uygun Job interface'i
 interface Job {
   job_id: string;
   title: string;
@@ -43,7 +42,6 @@ interface Job {
   posted_at: string;
 }
 
-// Candidate veri yapısı
 interface Candidate {
   resume_language: string;
   total_years_experience: number;
@@ -82,7 +80,6 @@ interface Education {
   application_id: string;
 }
 
-// Employment type ve seniority level için Türkçe etiketler
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   'FULL_TIME': 'Tam Zamanlı',
   'PART_TIME': 'Yarı Zamanlı',
@@ -108,25 +105,23 @@ const STATUS_LABELS: Record<string, string> = {
   'REJECTED': 'Reddedildi',
 };
 
-// YENİ FONKSİYON: Duruma göre renk döndür
 const getStatusBadgeClass = (status: string): string => {
   switch (status) {
     case 'RECEIVED':
-      return 'bg-gray-100 text-gray-700 hover:bg-gray-200'; // gray tone
+      return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
     case 'IN_REVIEW':
-      return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'; // yellow
+      return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
     case 'SHORTLISTED':
-      return 'bg-blue-100 text-blue-700 hover:bg-blue-200'; // blue
+      return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
     case 'HIRED':
-      return 'bg-green-100 text-green-700 hover:bg-green-200'; // green
+      return 'bg-green-100 text-green-700 hover:bg-green-200';
     case 'REJECTED':
-      return 'bg-red-100 text-red-700 hover:bg-red-200'; // red
+      return 'bg-red-100 text-red-700 hover:bg-red-200';
     default:
       return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
   }
 };
 
-// YENİ FONKSİYON: Eşleşme skoruna göre renk döndür
 const getScoreBadgeClass = (score: number): string => {
   if (score >= 0.8) return 'bg-green-100 text-green-700 hover:bg-green-200';
   if (score >= 0.6) return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
@@ -134,39 +129,33 @@ const getScoreBadgeClass = (score: number): string => {
   return 'bg-red-100 text-red-700 hover:bg-red-200';
 };
 
-// GÜNCELLENMİŞ FONKSİYON: Deneyim yıllarına göre renk döndür
-// (< 1: Gri, 1-3: Mavi, 3-6: Sarı, 6+: Mor)
 const getExperienceBadgeClass = (years: number): string => {
   if (years > 6) {
-    return 'bg-purple-100 text-purple-700 hover:bg-purple-200'; // 6+ years (Purple)
+    return 'bg-purple-100 text-purple-700 hover:bg-purple-200';
   }
   if (years > 3) {
-    return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'; // 3 to 6 years (Yellow)
+    return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
   }
   if (years >= 1) {
-    return 'bg-blue-100 text-blue-700 hover:bg-blue-200'; // 1 to 3 years (Blue)
+    return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
   }
-  return 'bg-gray-100 text-gray-700 hover:bg-gray-200'; // <1 year (Gray)
+  return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
 };
 
-// 💡 ROBUSTLY UPDATED HELPER FUNCTION: Normalizes all words in a name string (e.g., "john william" -> "John William")
 const normalizeName = (name: string): string => {
   if (!name) return '';
 
   return name
     .trim()
     .toLowerCase()
-    .split(/\s+/) // Split by one or more spaces
+    .split(/\s+/)
     .map(word => {
       if (word.length === 0) return '';
-      // Capitalize the first letter and keep the rest lowercased
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
-    .join(' '); // Join the capitalized words back with a single space
+    .join(' ');
 };
 
-
-// Candidate Card component
 const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Candidate; applicant: Applicant; onStatusChange: (applicationId: string, newStatus: string) => void }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
@@ -203,29 +192,18 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
 
   const handleViewCV = async () => {
     try {
-      console.log('=== CV Görüntüle Tıklandı ===');
-      console.log('Aday ID:', candidate.applicant_id);
-      console.log('================================');
 
       setIsLoadingPdf(true);
 
       const response = await getResumeRankings(candidate.application_id);
 
-      console.log('=== API Yanıtı ===');
-      console.log('Response:', response);
-      console.log('==================');
-
-      // The API returns a Base64 string directly.
       const base64Data = response.data;
 
       if (base64Data) {
         const dataUri = `data:application/pdf;base64,${base64Data}`;
         setPdfData(dataUri);
         setShowPdf(true);
-
-        console.log('PDF URL oluşturuldu:', dataUri);
       } else {
-        console.error('PDF verisi bulunamadı');
         toast({
           variant: "destructive",
           title: "PDF Yükleme Hatası",
@@ -234,10 +212,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
       }
 
     } catch (error) {
-      console.error('=== CV Görüntüle Hatası ===');
-      console.error('Aday ID:', candidate.applicant_id);
-      console.error('Hata:', error);
-      console.error('==========================');
       toast({
         variant: "destructive",
         title: "PDF Yükleme Hatası",
@@ -265,7 +239,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
       setIsDialogOpen(false);
       onStatusChange(candidate.application_id, newStatus);
     } catch (error) {
-      console.error("Error updating status:", error);
       toast({
         variant: "destructive",
         title: "Durum Güncelleme Hatası",
@@ -274,12 +247,10 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
     }
   };
 
-  // 💡 USES NEW ROBUST LOGIC: Get the full name by normalizing and combining the first and last names.
   const candidateFirstName = normalizeName(applicant.first_name);
   const candidateLastName = normalizeName(applicant.last_name);
   const candidateName = `${candidateFirstName} ${candidateLastName}`.trim();
 
-  // Yetenekleri ayırma
   const visibleSkills = candidate.parsed_skills.slice(0, 6);
   const hiddenSkills = candidate.parsed_skills.slice(6);
   const shouldShowToggleButton = candidate.parsed_skills.length > 6;
@@ -288,8 +259,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
     setIsSkillsListOpen(!isSkillsListOpen);
   };
 
-  // 🟢 DEĞİŞİKLİK: Eski geçiş süresi değişkeni kaldırıldı. Transition doğrudan CSS'e eklenecek.
-
   return (
     <div className="space-y-4">
       <Card className="hover:shadow-md transition-shadow">
@@ -297,7 +266,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                {/* Fallback to first two letters for initials if name is complex/empty */}
                 {candidateName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
               </div>
               <div>
@@ -308,7 +276,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                 </CardDescription>
               </div>
             </div>
-            {/* Skor etiketi, daha küçük kalabilir */}
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreColor(candidate.ranking_score)}`}>
               <div className="flex items-center gap-1">
                 <Star className="h-3 w-3" />
@@ -319,7 +286,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-4">
-            {/* Eşleşme durumu, Deneyim ve YENİ: Durum - Tümü text-sm yapıldı */}
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant="default"
@@ -341,21 +307,17 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
               </Badge>
             </div>
 
-            {/* Temel bilgiler (Başvuru Tarihi) */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                {/* GÜNCELLEME: Başvuru kelimesi kalınlaştırıldı ve font boyutu text-sm yapıldı. */}
                 <span className="text-sm font-semibold">
                   <span className="font-bold">Başvuru:</span> {formatDate(candidate.application_date)}
                 </span>
               </div>
 
-              {/* Durum buradaydı, yukarı taşındı */}
               <div className="col-span-1"></div>
             </div>
 
-            {/* Eğitim bilgileri */}
             {candidate.education_history?.length > 0 && (
               <div className="flex flex-col gap-2 text-sm text-muted-foreground">
                 {candidate.education_history.map((edu: any, index: number) => (
@@ -369,7 +331,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
               </div>
             )}
 
-            {/* Tüm deneyimler */}
             {candidate.work_experience?.length > 0 && (
               <div className="flex flex-col gap-2 text-sm text-muted-foreground">
                 {candidate.work_experience.map((exp: any, index: number) => (
@@ -383,7 +344,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
               </div>
             )}
 
-            {/* Yetenekler (GÜNCELLENMİŞ YERLEŞİM) */}
             {candidate.parsed_skills.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -391,47 +351,37 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                   <span className="text-sm font-semibold text-muted-foreground">Yetenekler</span>
                 </div>
 
-                {/* Tüm Yetenekler için Ana Konteyner - flex-wrap ile aynı satırda devam etmesi sağlandı */}
                 <div className="flex flex-wrap gap-1">
 
-                  {/* Her zaman görünür olan ilk 6 yetenek */}
                   {visibleSkills.map((skill, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {skill}
                     </Badge>
                   ))}
 
-                  {/* 🚀 MAX-HEIGHT TRANSITION BAŞLANGICI 🚀 */}
                   <div
                     className="flex flex-wrap gap-1 transition-all ease-in-out duration-300"
                     style={{
-                      // 🎯 CRITICAL CHANGE: Use transitionDelay
                       transitionDelay: isSkillsListOpen
-                        ? '125ms'           // Expanding: Start opacity instantly
-                        : '0ms',        // Collapsing: Wait 200ms before starting opacity fade-out
-
-                      // 💡 Add explicit properties to ensure the delay applies correctly
+                        ? '125ms'
+                        : '0ms',
                       transitionProperty: 'max-height, opacity',
-
                       maxHeight: isSkillsListOpen ? '300px' : '0',
                       opacity: isSkillsListOpen ? '1' : '0',
                       overflow: 'hidden',
                       marginTop: isSkillsListOpen ? '0' : '0',
                     }}
                   >
-                    {/* Artık her bir Badge kendi başına bir animasyon uygulamıyor */}
                     {hiddenSkills.map((skill, index) => (
                       <Badge key={index} variant="secondary" className="text-xs">
                         {skill}
                       </Badge>
                     ))}
                   </div>
-                  {/* 🚀 MAX-HEIGHT TRANSITION SONU 🚀 */}
                 </div>
 
-                {/* GÖSTER/GİZLE Butonu - Ayrı bir satırda ve sola hizalı */}
                 {shouldShowToggleButton && (
-                  <div className="mt-2"> {/* mt-2 (margin-top: 0.5rem) ile boşluk eklendi */}
+                  <div className="mt-2">
                     <Badge
                       className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
                       onClick={toggleSkills}
@@ -443,10 +393,8 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
               </div>
             )}
 
-            {/* Aksiyon butonları */}
             <div className="flex gap-2 pt-2 border-t">
               {showPdf ? (
-                // Show only the "Close PDF" button when PDF is open, and make it full width
                 <Button
                   size="sm"
                   className="w-full"
@@ -456,14 +404,13 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                   CV'yi Kapat
                 </Button>
               ) : (
-                // Show both buttons when PDF is not open
                 <>
                   <Button
                     size="sm"
                     className="flex-1"
                     onClick={handleViewCV}
                     disabled={isLoadingPdf}
-                    variant="outline" // Changed to outline for secondary action
+                    variant="outline"
                   >
                     {isLoadingPdf ? (
                       <div className="flex items-center gap-2">
@@ -510,7 +457,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
         </CardContent>
       </Card>
 
-      {/* PDF Görüntüleyici */}
       {showPdf && pdfData && (
         <Card>
           <CardHeader>
@@ -539,7 +485,7 @@ export default function JobDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const { getApplicantById } = useContext(AppContext)!; // 💡 UPDATED: Use getApplicantById from context
+  const { getApplicantById } = useContext(AppContext)!;
   const [isLoading, setIsLoading] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
   const [isJobLoading, setIsJobLoading] = useState(true);
@@ -561,7 +507,6 @@ export default function JobDetailPage() {
         const response = await getJob(jobId);
         setJob(response.data as Job);
       } catch (error) {
-        console.error("Error fetching job:", error);
         setJobError("İş ilanı yüklenirken bir hata oluştu.");
       } finally {
         setIsJobLoading(false);
@@ -571,12 +516,9 @@ export default function JobDetailPage() {
     const getCandidatesForJob = async () => {
       try {
         const response = await getRankings(jobId);
-        // Skora göre sırala
         const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
         setCandidates(sortedCandidates);
       } catch (error) {
-        console.error("Error fetching candidates:", error);
-        // Adayları yüklerken hata olsa bile, iş ilanını göstermeye devam et
       }
     };
 
@@ -590,11 +532,8 @@ export default function JobDetailPage() {
     setIsLoading(true);
     try {
       const rankingResult = await ranking(job.job_id, file);
-      console.log('Ranking API response:', rankingResult);
 
-      // Adayları yeniden yükle
       const response = await getRankings(job.job_id);
-      // Skora göre sırala
       const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
       setCandidates(sortedCandidates);
 
@@ -603,7 +542,6 @@ export default function JobDetailPage() {
         description: `${file.name} başarıyla analiz edildi ve sıralandı.`,
       });
     } catch (error) {
-      console.error("File upload failed:", error);
       toast({
         variant: "destructive",
         title: "Yükleme Başarısız",
@@ -645,7 +583,6 @@ export default function JobDetailPage() {
     );
   }
 
-  // Error state
   if (jobError) {
     return (
       <div className="container mx-auto">
@@ -660,7 +597,6 @@ export default function JobDetailPage() {
     );
   }
 
-  // Job not found
   if (!job) {
     return (
       <div className="container mx-auto">
@@ -801,12 +737,9 @@ export default function JobDetailPage() {
                 <div className="space-y-4">
                   {candidates
                     .map((candidate) => {
-                      // 💡 GET APPLICANT DATA
                       const applicant = getApplicantById(candidate.applicant_id);
 
-                      // Skip rendering if applicant data is not found (data loading issue or inconsistency)
                       if (!applicant) {
-                        // Optionally render a placeholder or error card
                         return null;
                       }
 

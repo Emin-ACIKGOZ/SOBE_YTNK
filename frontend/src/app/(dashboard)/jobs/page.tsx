@@ -6,7 +6,7 @@ import { useApp } from "@/hooks/use-app";
 import { PlusCircle, Users, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getJobs, deleteJob, JobPosting } from "@/lib/api/jobs"; 
+import { getJobs, deleteJob, JobPosting } from "@/lib/api/jobs";
 import Swal from 'sweetalert2';
 
 
@@ -16,8 +16,7 @@ export default function JobsPage() {
 
   useEffect(() => {
     getJobs().then((response) => {
-      // ✅ FIX: Access the jobs array directly from the Axios response data.
-      setJobPostings(response.data); 
+      setJobPostings(response.data);
     }).catch((error) => {
       console.error("Error fetching jobs:", error);
     });

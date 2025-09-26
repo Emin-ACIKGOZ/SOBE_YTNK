@@ -67,9 +67,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <AvatarImage src="" alt="@hr-personnel" data-ai-hint="person face" />
                     <AvatarFallback>A</AvatarFallback>
                   </Avatar>
-                   <div className="text-left hidden group-data-[state=expanded]:block">
-                      <p className="text-sm font-medium">Admin</p>
-                      <p className="text-xs text-muted-foreground">admin@havelsan.com.tr</p>
+                  <div className="text-left hidden group-data-[state=expanded]:block">
+                    <p className="text-sm font-medium">Admin</p>
+                    <p className="text-xs text-muted-foreground">admin@havelsan.com.tr</p>
                   </div>
                 </Button>
               </DropdownMenuTrigger>

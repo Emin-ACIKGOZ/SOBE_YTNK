@@ -1,11 +1,13 @@
-// lib/api/base.ts - Base API client
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-
+// Ortam değişkenlerinden temel API URL'sini alır.
 const base_url = process.env.NEXT_PUBLIC_API_BASEURL;
 
-// Base API client
+/**
+ * Tüm API istekleri için yapılandırılmış ana Axios istemcisi.
+ * Temel URL'yi ayarlar ve Content-Type başlıklarını tanımlar.
+ */
 const apiClient = axios.create({
     baseURL: base_url,
     headers: {
@@ -14,7 +16,11 @@ const apiClient = axios.create({
     },
 });
 
-// Request interceptor - her isteğe otomatik token ekler
+/**
+ * İstek kesicisi (Interceptor).
+ * Her giden isteğe, Session Storage'da kayıtlı olan erişim belirtecini (access_token)
+ * 'Authorization: Bearer [token]' başlığı olarak otomatik ekler.
+ */
 apiClient.interceptors.request.use(
     (config) => {
         const token = sessionStorage.getItem('access_token');
@@ -30,7 +36,11 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor - 401 durumunda otomatik logout
+/**
+ * Yanıt kesicisi (Interceptor).
+ * Sunucudan gelen yanıtları dinler. Eğer yanıt durumu 401 (Yetkisiz) ise,
+ * kaydedilen tüm oturum verilerini temizler ve kullanıcıyı '/login' sayfasına yönlendirir.
+ */
 apiClient.interceptors.response.use(
     (response) => {
         return response;
