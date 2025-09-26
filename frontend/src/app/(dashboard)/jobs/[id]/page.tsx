@@ -3,7 +3,7 @@
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 
 import { CvUpload } from "@/components/cv-upload";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,9 @@ import { getJob } from "@/lib/api";
 import { updateApplicationStatus, Application } from "@/lib/api/applications";
 import { getRankings, getResumeRankings, ranking } from "@/lib/api/ranking";
 import { ArrowLeft, Briefcase, Building2, Calendar, Clock, Code, DollarSign, FileText, GraduationCap, Loader2, MapPin, Star, User, Users } from "lucide-react";
+
+import { AppContext } from "@/context/app-context";
+import { Applicant } from "@/lib/api/applicants";
 
 // API'den gelen veri yapısına uygun Job interface'i
 interface Job {
@@ -146,26 +149,31 @@ const getExperienceBadgeClass = (years: number): string => {
   return 'bg-gray-100 text-gray-700 hover:bg-gray-200'; // <1 year (Gray)
 };
 
+// 💡 ROBUSTLY UPDATED HELPER FUNCTION: Normalizes all words in a name string (e.g., "john william" -> "John William")
+const normalizeName = (name: string): string => {
+  if (!name) return '';
+
+  return name
+    .trim()
+    .toLowerCase()
+    .split(/\s+/) // Split by one or more spaces
+    .map(word => {
+      if (word.length === 0) return '';
+      // Capitalize the first letter and keep the rest lowercased
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' '); // Join the capitalized words back with a single space
+};
+
 
 // Candidate Card component
-const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; onStatusChange: (applicationId: string, newStatus: string) => void }) => {
+const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Candidate; applicant: Applicant; onStatusChange: (applicationId: string, newStatus: string) => void }) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
   const [isSkillsListOpen, setIsSkillsListOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-
-  // CV'den adayın ismini çıkarma fonksiyonu
-  const extractNameFromCV = (cvData: string): string => {
-    const lines = cvData.split('\n');
-    // İlk satırda genellikle isim bulunur
-    const firstLine = lines[0]?.trim();
-    if (firstLine && firstLine.length < 50 && !firstLine.includes('@') && !firstLine.includes('http')) {
-      return firstLine;
-    }
-    return 'Aday';
-  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -266,7 +274,10 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
     }
   };
 
-  const candidateName = extractNameFromCV(candidate.parsed_resume_data);
+  // 💡 USES NEW ROBUST LOGIC: Get the full name by normalizing and combining the first and last names.
+  const candidateFirstName = normalizeName(applicant.first_name);
+  const candidateLastName = normalizeName(applicant.last_name);
+  const candidateName = `${candidateFirstName} ${candidateLastName}`.trim();
 
   // Yetenekleri ayırma
   const visibleSkills = candidate.parsed_skills.slice(0, 6);
@@ -289,6 +300,7 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                {/* Fallback to first two letters for initials if name is complex/empty */}
                 {candidateName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
               </div>
               <div>
@@ -374,23 +386,27 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
               </div>
             )}
 
-            {/* Yetenekler */}
+            {/* Yetenekler (GÜNCELLENMİŞ YERLEŞİM) */}
             {candidate.parsed_skills.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Code className="h-3 w-3 text-muted-foreground" />
-                  {/* GÜNCELLEME: Font boyutu text-sm yapıldı. */}
                   <span className="text-sm font-semibold text-muted-foreground">Yetenekler</span>
                 </div>
-                <div className="flex flex-wrap gap-1">
+                
+                {/* Tüm Yetenekler ve Buton için Ana Konteyner - Dikey sıralama (space-y-1 ile) */}
+                <div className="space-y-1">
+                  
                   {/* Her zaman görünür olan ilk 6 yetenek */}
-                  {visibleSkills.map((skill, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
+                  <div className="flex flex-wrap gap-1">
+                    {visibleSkills.map((skill, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
 
-                  {/* Yeni eklenen/gizlenen yetenekler ve animasyon */}
+                  {/* Gizlenen yetenekler - GEREKİRSE GÖRÜNÜR YETENEKLERİN ALTINDA YENİ BİR SATIRDA */}
                   {hiddenSkills.length > 0 && (
                     <div
                       className={`
@@ -413,15 +429,17 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
                     </div>
                   )}
 
-                  {/* GÜNCELLENDİ: Göster/Gizle butonu için soft yeşil ve hover efekti eklendi */}
+                  {/* GÖSTER/GİZLE Butonu - YENİ BİR SATIRDA VE SOLA HİZALANMIŞ */}
                   {shouldShowToggleButton && (
-                    <Badge
-                      // variant="outline" kaldırıldı ve özel sınıflar eklendi
-                      className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
-                      onClick={toggleSkills}
-                    >
-                      {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
-                    </Badge>
+                    <div>
+                      <Badge
+                        // `variant="outline"` kaldırıldı ve özel sınıflar eklendi
+                        className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
+                        onClick={toggleSkills}
+                      >
+                        {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
+                      </Badge>
+                    </div>
                   )}
                 </div>
               </div>
@@ -499,7 +517,6 @@ const CandidateCard = ({ candidate, onStatusChange }: { candidate: Candidate; on
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              {/* SYNTAX ERROR FIXED HERE */}
               <CardTitle className="text-lg">{candidateName} - CV</CardTitle> 
             </div>
           </CardHeader>
@@ -524,6 +541,7 @@ export default function JobDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { getApplicantById } = useContext(AppContext)!; // 💡 UPDATED: Use getApplicantById from context
   const [isLoading, setIsLoading] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
   const [isJobLoading, setIsJobLoading] = useState(true);
@@ -784,13 +802,25 @@ export default function JobDetailPage() {
               {candidates.length > 0 ? (
                 <div className="space-y-4">
                   {candidates
-                    .map((candidate) => (
-                      <CandidateCard
-                        key={candidate.application_id}
-                        candidate={candidate}
-                        onStatusChange={handleStatusChange}
-                      />
-                    ))}
+                    .map((candidate) => {
+                      // 💡 GET APPLICANT DATA
+                      const applicant = getApplicantById(candidate.applicant_id);
+
+                      // Skip rendering if applicant data is not found (data loading issue or inconsistency)
+                      if (!applicant) {
+                        // Optionally render a placeholder or error card
+                        return null; 
+                      }
+
+                      return (
+                        <CandidateCard
+                          key={candidate.application_id}
+                          candidate={candidate}
+                          applicant={applicant}
+                          onStatusChange={handleStatusChange}
+                        />
+                      );
+                    })}
                 </div>
               ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-lg flex flex-col items-center justify-center h-full">

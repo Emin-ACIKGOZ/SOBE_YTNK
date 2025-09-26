@@ -4,11 +4,13 @@ import type { ReactNode } from "react";
 import { createContext, useState, useCallback, useMemo, useEffect } from "react";
 import { getJobs, createJob, JobPosting, JobCreatePayload } from "@/lib/api/jobs";
 import { getApplications, createApplication, Application, ApplicationCreate } from "@/lib/api/applications";
+import { Applicant, getApplicants } from "@/lib/api/applicants"; // 💡 NEW: Import Applicant API functions and type
 
-// This context provides a global state for job postings and applications.
+// This context provides a global state for job postings, applications, and applicants.
 interface AppContextType {
   jobPostings: JobPosting[];
   applications: Application[];
+  applicants: Applicant[]; // 💡 NEW: Add applicant data
   // Function to add a new job posting via API.
   addJobPosting: (job: JobCreatePayload) => Promise<JobPosting | undefined>;
   // Function to add a new application via API.
@@ -17,6 +19,8 @@ interface AppContextType {
   getJobById: (id: string) => JobPosting | undefined;
   // Function to retrieve applications for a specific job.
   getApplicationsForJob: (jobId: string) => Application[];
+  // 💡 NEW: Function to retrieve a single applicant by their ID.
+  getApplicantById: (id: string) => Applicant | undefined;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -24,6 +28,7 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [applicants, setApplicants] = useState<Applicant[]>([]); // 💡 NEW: Initialize applicant state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,14 +37,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Using Promise.all to fetch jobs and applications concurrently.
-        const [jobsResponse, applicationsResponse] = await Promise.all([
+        // 💡 UPDATED: Fetch jobs, applications, and applicants concurrently.
+        const [jobsResponse, applicationsResponse, applicantsResponse] = await Promise.all([
           getJobs(),
           getApplications(),
+          getApplicants(), // Fetch all applicants
         ]);
-        // ✅ FIX: Access the jobs array directly from the response data.
+
         setJobPostings(jobsResponse.data);
         setApplications(applicationsResponse.data);
+        setApplicants(applicantsResponse.data); // Update applicant state
         setError(null);
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
@@ -90,16 +97,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => (b.ranking_score || 0) - (a.ranking_score || 0));
   }, [applications]);
 
+  // Retrieves an applicant by their ID from the current state.
+  const getApplicantById = useCallback((id: string) => {
+    return applicants.find((applicant) => applicant.applicant_id === id);
+  }, [applicants]);
+
   const value = useMemo(
     () => ({
       jobPostings,
       applications,
+      applicants, // 💡 NEW: Expose applicants
       addJobPosting,
       addApplication,
       getJobById,
       getApplicationsForJob,
+      getApplicantById, // 💡 NEW: Expose getter function
     }),
-    [jobPostings, applications, addJobPosting, addApplication, getJobById, getApplicationsForJob]
+    [
+      jobPostings,
+      applications,
+      applicants, // 💡 NEW: Dependency
+      addJobPosting,
+      addApplication,
+      getJobById,
+      getApplicationsForJob,
+      getApplicantById, // 💡 NEW: Dependency
+    ]
   );
 
   if (loading) {
