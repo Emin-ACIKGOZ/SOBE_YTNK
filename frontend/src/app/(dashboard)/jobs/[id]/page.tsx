@@ -7,7 +7,6 @@ import { useEffect, useState, useContext } from "react";
 
 import { CvUpload } from "@/components/cv-upload";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -25,6 +24,7 @@ import { ArrowLeft, Briefcase, Building2, Calendar, Clock, Code, DollarSign, Fil
 
 import { AppContext } from "@/context/app-context";
 import { Applicant } from "@/lib/api/applicants";
+import { Button } from "@/components/ui/button";
 
 // API'den gelen veri yapısına uygun Job interface'i
 interface Job {
@@ -140,10 +140,10 @@ const getExperienceBadgeClass = (years: number): string => {
   if (years > 6) {
     return 'bg-purple-100 text-purple-700 hover:bg-purple-200'; // 6+ years (Purple)
   }
-  if (years > 3) { 
+  if (years > 3) {
     return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'; // 3 to 6 years (Yellow)
   }
-  if (years >= 1) { 
+  if (years >= 1) {
     return 'bg-blue-100 text-blue-700 hover:bg-blue-200'; // 1 to 3 years (Blue)
   }
   return 'bg-gray-100 text-gray-700 hover:bg-gray-200'; // <1 year (Gray)
@@ -288,10 +288,7 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
     setIsSkillsListOpen(!isSkillsListOpen);
   };
 
-  // Dinamik geçiş sürelerini belirlemek için stil hesaplaması
-  const transitionDuration = isSkillsListOpen
-    ? 'max-height 500ms ease-in-out, opacity 500ms ease-in-out' // Fade In (500ms)
-    : 'max-height 250ms ease-in-out, opacity 250ms ease-in-out'; // Fade Out (250ms)
+  // 🟢 DEĞİŞİKLİK: Eski geçiş süresi değişkeni kaldırıldı. Transition doğrudan CSS'e eklenecek.
 
   return (
     <div className="space-y-4">
@@ -324,20 +321,20 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
           <div className="space-y-4">
             {/* Eşleşme durumu, Deneyim ve YENİ: Durum - Tümü text-sm yapıldı */}
             <div className="flex flex-wrap items-center gap-2">
-              <Badge 
-                variant="default" 
+              <Badge
+                variant="default"
                 className={`text-sm px-3 py-1 font-bold transition-colors duration-300 ${getStatusBadgeClass(candidate.status)}`}
               >
                 {STATUS_LABELS[candidate.status] || candidate.status}
               </Badge>
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={`text-sm px-3 py-1 transition-colors duration-300 ${getScoreBadgeClass(candidate.ranking_score)}`}
               >
                 {getScoreText(candidate.ranking_score)}
               </Badge>
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className={`text-sm px-3 py-1 transition-colors duration-300 ${getExperienceBadgeClass(candidate.total_years_experience)}`}
               >
                 {candidate.total_years_experience} yıl deneyim
@@ -353,7 +350,7 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                   <span className="font-bold">Başvuru:</span> {formatDate(candidate.application_date)}
                 </span>
               </div>
-              
+
               {/* Durum buradaydı, yukarı taşındı */}
               <div className="col-span-1"></div>
             </div>
@@ -393,55 +390,56 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                   <Code className="h-3 w-3 text-muted-foreground" />
                   <span className="text-sm font-semibold text-muted-foreground">Yetenekler</span>
                 </div>
-                
-                {/* Tüm Yetenekler ve Buton için Ana Konteyner - Dikey sıralama (space-y-1 ile) */}
-                <div className="space-y-1">
-                  
+
+                {/* Tüm Yetenekler için Ana Konteyner - flex-wrap ile aynı satırda devam etmesi sağlandı */}
+                <div className="flex flex-wrap gap-1">
+
                   {/* Her zaman görünür olan ilk 6 yetenek */}
-                  <div className="flex flex-wrap gap-1">
-                    {visibleSkills.map((skill, index) => (
+                  {visibleSkills.map((skill, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {skill}
+                    </Badge>
+                  ))}
+
+                  {/* 🚀 MAX-HEIGHT TRANSITION BAŞLANGICI 🚀 */}
+                  <div
+                    className="flex flex-wrap gap-1 transition-all ease-in-out duration-300"
+                    style={{
+                      // 🎯 CRITICAL CHANGE: Use transitionDelay
+                      transitionDelay: isSkillsListOpen
+                        ? '125ms'           // Expanding: Start opacity instantly
+                        : '0ms',        // Collapsing: Wait 200ms before starting opacity fade-out
+
+                      // 💡 Add explicit properties to ensure the delay applies correctly
+                      transitionProperty: 'max-height, opacity',
+
+                      maxHeight: isSkillsListOpen ? '300px' : '0',
+                      opacity: isSkillsListOpen ? '1' : '0',
+                      overflow: 'hidden',
+                      marginTop: isSkillsListOpen ? '0' : '0',
+                    }}
+                  >
+                    {/* Artık her bir Badge kendi başına bir animasyon uygulamıyor */}
+                    {hiddenSkills.map((skill, index) => (
                       <Badge key={index} variant="secondary" className="text-xs">
                         {skill}
                       </Badge>
                     ))}
                   </div>
-
-                  {/* Gizlenen yetenekler - GEREKİRSE GÖRÜNÜR YETENEKLERİN ALTINDA YENİ BİR SATIRDA */}
-                  {hiddenSkills.length > 0 && (
-                    <div
-                      className={`
-                        flex flex-wrap gap-1 overflow-hidden
-                      `}
-                      style={{
-                        // Değişiklik: Transition süresi duruma göre dinamik ayarlandı
-                        transition: transitionDuration,
-                        maxHeight: isSkillsListOpen ? '500px' : '0px',
-                        opacity: isSkillsListOpen ? '1' : '0',
-                        pointerEvents: isSkillsListOpen ? 'auto' : 'none',
-                      }}
-                    >
-                      {/* Animasyon için DOM'da kalması gerekir */}
-                      {hiddenSkills.map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* GÖSTER/GİZLE Butonu - YENİ BİR SATIRDA VE SOLA HİZALANMIŞ */}
-                  {shouldShowToggleButton && (
-                    <div>
-                      <Badge
-                        // `variant="outline"` kaldırıldı ve özel sınıflar eklendi
-                        className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
-                        onClick={toggleSkills}
-                      >
-                        {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
-                      </Badge>
-                    </div>
-                  )}
+                  {/* 🚀 MAX-HEIGHT TRANSITION SONU 🚀 */}
                 </div>
+
+                {/* GÖSTER/GİZLE Butonu - Ayrı bir satırda ve sola hizalı */}
+                {shouldShowToggleButton && (
+                  <div className="mt-2"> {/* mt-2 (margin-top: 0.5rem) ile boşluk eklendi */}
+                    <Badge
+                      className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
+                      onClick={toggleSkills}
+                    >
+                      {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
+                    </Badge>
+                  </div>
+                )}
               </div>
             )}
 
@@ -517,7 +515,7 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{candidateName} - CV</CardTitle> 
+              <CardTitle className="text-lg">{candidateName} - CV</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -658,7 +656,7 @@ export default function JobDetailPage() {
             <Button>İş İlanları</Button>
           </Link>
         </div>
-        </div>
+      </div>
     );
   }
 
@@ -809,7 +807,7 @@ export default function JobDetailPage() {
                       // Skip rendering if applicant data is not found (data loading issue or inconsistency)
                       if (!applicant) {
                         // Optionally render a placeholder or error card
-                        return null; 
+                        return null;
                       }
 
                       return (
