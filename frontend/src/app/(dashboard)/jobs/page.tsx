@@ -29,7 +29,7 @@ export default function JobsPage() {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Evet, sil',
-      cancelButtonText: 'Hayır, iptet et',
+      cancelButtonText: 'Hayır, iptal et',
       reverseButtons: true,
     });
 

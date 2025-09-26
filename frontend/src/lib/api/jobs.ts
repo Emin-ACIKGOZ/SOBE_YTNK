@@ -3,6 +3,12 @@ import { AxiosResponse } from 'axios';
 
 // --- İş İlanı Türleri ---
 
+// Backend SeniorityLevel (Python Enum):
+// INTERNSHIP, ENTRY_LEVEL, JUNIOR_LEVEL, MID_LEVEL, SENIOR_LEVEL, DIRECTOR, EXECUTIVE
+
+// Backend EmploymentType (Python Enum):
+// FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP
+
 /**
  * API'den dönen tam İş İlanı (JobPosting) nesnesi için arayüz.
  */
@@ -19,11 +25,11 @@ export interface JobPosting {
     /** Çalışma konumu. */
     location: string;
 
-    /** Deneyim seviyesi. */
-    seniority_level: 'INTERNSHIP' | 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD';
+    /** Deneyim seviyesi. (BACKEND ALIGNMENT) */
+    seniority_level: 'INTERNSHIP' | 'ENTRY_LEVEL' | 'JUNIOR_LEVEL' | 'MID_LEVEL' | 'SENIOR_LEVEL' | 'DIRECTOR' | 'EXECUTIVE';
 
-    /** İstihdam türü. */
-    employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY';
+    /** İstihdam türü. (BACKEND ALIGNMENT) */
+    employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
 
     /** İşin genel tanımı. */
     description: string;
@@ -58,8 +64,10 @@ export interface JobCreatePayload {
     title: string;
     company_name: string;
     location: string;
-    seniority_level: 'INTERNSHIP' | 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD';
-    employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY';
+    /** Deneyim seviyesi. (BACKEND ALIGNMENT) */
+    seniority_level: 'INTERNSHIP' | 'ENTRY_LEVEL' | 'JUNIOR_LEVEL' | 'MID_LEVEL' | 'SENIOR_LEVEL' | 'DIRECTOR' | 'EXECUTIVE';
+    /** İstihdam türü. (BACKEND ALIGNMENT) */
+    employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
     description: string;
     responsibilities: string[];
     qualifications: string[];

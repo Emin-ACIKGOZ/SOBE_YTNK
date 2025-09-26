@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import axios from "axios"; // 👈 Import axios for error checking
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +17,26 @@ import { useToast } from "@/hooks/use-toast";
 import { createJob, JobCreatePayload } from "@/lib/api";
 
 
+// 🚨 FIX 1: Align Zod schema enum values with the backend (JobCreatePayload)
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
   company_name: z.string().min(2, "Company name is required."),
   location: z.string().min(2, "Location is required."),
-  seniority_level: z.enum(["INTERNSHIP", "JUNIOR", "MID", "SENIOR", "LEAD"]),
-  employment_type: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "TEMPORARY"]),
+  seniority_level: z.enum([
+    "INTERNSHIP",
+    "ENTRY_LEVEL",
+    "JUNIOR_LEVEL",
+    "MID_LEVEL",
+    "SENIOR_LEVEL",
+    "DIRECTOR",
+    "EXECUTIVE"
+  ]),
+  employment_type: z.enum([
+    "FULL_TIME",
+    "PART_TIME",
+    "CONTRACT",
+    "INTERNSHIP" // Removed TEMPORARY, added INTERNSHIP (from backend enum)
+  ]),
   description: z.string().min(20, "Description must be at least 20 characters long."),
   responsibilities: z.string().min(5, "Responsibilities are required."),
   qualifications: z.string().min(5, "Qualifications are required."),
@@ -39,7 +54,8 @@ export default function NewJobPage() {
       title: "",
       company_name: "",
       location: "",
-      seniority_level: "INTERNSHIP",
+      // 🚨 FIX 2: Update default values to match the new enum strings
+      seniority_level: "JUNIOR_LEVEL",
       employment_type: "FULL_TIME",
       description: "",
       responsibilities: "",
@@ -48,6 +64,7 @@ export default function NewJobPage() {
       salary: "",
     },
   });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const payload: JobCreatePayload = {
@@ -57,6 +74,7 @@ export default function NewJobPage() {
         seniority_level: values.seniority_level,
         employment_type: values.employment_type,
         description: values.description,
+        // Map multiline strings into arrays
         responsibilities: values.responsibilities.split("\n").map((r) => r.trim()).filter(Boolean),
         qualifications: values.qualifications.split("\n").map((q) => q.trim()).filter(Boolean),
         required_skills: values.required_skills.split("\n").map((s) => s.trim()).filter(Boolean),
@@ -66,7 +84,8 @@ export default function NewJobPage() {
       const response = await createJob(payload);
 
       if (response.status !== 201) {
-        throw new Error("Failed to create job posting");
+        // This throw statement is okay, but we should handle the error response data below
+        throw new Error("Failed to create job posting with non-201 status.");
       }
 
       toast({
@@ -75,14 +94,37 @@ export default function NewJobPage() {
       });
 
       router.push("/jobs");
-    } catch (error: any) {
+
+    } catch (error: unknown) { // Use unknown for safer type checking
       console.error('Error creating job posting:', error);
-      const errorMessage = error.response?.data?.detail ||
-        error.message ||
-        "İş ilanı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.";
+
+      let errorMessage = "İş ilanı oluşturulurken bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.";
+
+      if (axios.isAxiosError(error) && error.response) {
+        const responseData = error.response.data;
+
+        // 🚨 CRITICAL FIX 3: Check for 422 and format the error object into a string
+        if (error.response.status === 422 && responseData.detail) {
+          // FastAPI Pydantic validation errors are in responseData.detail
+          const errorMessages = responseData.detail.map((err: any) => {
+            // Extract the field name (last part of 'loc') and the message
+            const field = err.loc ? err.loc[err.loc.length - 1] : 'Alan';
+            return `"${field}": ${err.msg}`;
+          });
+          errorMessage = errorMessages.join('; ');
+        }
+        // Handle other simple detail messages or Axios errors
+        else if (responseData.detail && typeof responseData.detail === 'string') {
+          errorMessage = responseData.detail;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      }
+
+      // Pass the fully constructed STRING message to the toast
       toast({
         title: "Hata",
-        description: errorMessage,
+        description: errorMessage, // 👈 Now this is guaranteed to be a STRING
         variant: "destructive",
       });
     }
@@ -99,6 +141,8 @@ export default function NewJobPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
+              {/* Title, Company, Location fields remain the same */}
+              {/* ... */}
               <FormField
                 control={form.control}
                 name="title"
@@ -140,6 +184,7 @@ export default function NewJobPage() {
                   </FormItem>
                 )}
               />
+              {/* ... */}
 
               <FormField
                 control={form.control}
@@ -152,11 +197,14 @@ export default function NewJobPage() {
                         <SelectValue placeholder="Seçiniz" />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* 🚨 FIX 4: Update SelectItem values to match Zod and Backend */}
                         <SelectItem value="INTERNSHIP">Stajyer</SelectItem>
-                        <SelectItem value="JUNIOR">Junior</SelectItem>
-                        <SelectItem value="MID">Orta</SelectItem>
-                        <SelectItem value="SENIOR">Senior</SelectItem>
-                        <SelectItem value="LEAD">Lead</SelectItem>
+                        <SelectItem value="ENTRY_LEVEL">Giriş Seviyesi</SelectItem>
+                        <SelectItem value="JUNIOR_LEVEL">Junior</SelectItem>
+                        <SelectItem value="MID_LEVEL">Orta Seviye</SelectItem>
+                        <SelectItem value="SENIOR_LEVEL">Senior</SelectItem>
+                        <SelectItem value="DIRECTOR">Direktör</SelectItem>
+                        <SelectItem value="EXECUTIVE">Yönetici</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -175,10 +223,11 @@ export default function NewJobPage() {
                         <SelectValue placeholder="Seçiniz" />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* 🚨 FIX 5: Update SelectItem values to match Zod and Backend */}
                         <SelectItem value="FULL_TIME">Tam Zamanlı</SelectItem>
                         <SelectItem value="PART_TIME">Yarı Zamanlı</SelectItem>
                         <SelectItem value="CONTRACT">Sözleşmeli</SelectItem>
-                        <SelectItem value="TEMPORARY">Geçici</SelectItem>
+                        <SelectItem value="INTERNSHIP">Staj</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -186,6 +235,8 @@ export default function NewJobPage() {
                 )}
               />
 
+              {/* Description, Responsibilities, Qualifications, Skills, Salary fields remain the same */}
+              {/* ... */}
               <FormField
                 control={form.control}
                 name="description"
@@ -267,6 +318,7 @@ export default function NewJobPage() {
                   </FormItem>
                 )}
               />
+              {/* ... */}
 
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => router.back()}>
