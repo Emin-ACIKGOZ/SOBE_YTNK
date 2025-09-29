@@ -1,0 +1,50 @@
+services:
+  # The database service, using PostgreSQL.
+  db:
+    image: postgres:17-alpine
+    container_name: ytnk_db
+    restart: always
+    environment:
+      # Database credentials and name.
+      - POSTGRES_USER=ytnk_user
+      - POSTGRES_PASSWORD=ytnk_password
+      - POSTGRES_DB=ytnk_db
+    ports:
+      # Expose the database port to the host for external access if needed.
+      - "6059:5432"
+    volumes:
+      # Mount a named volume to persist database data across container restarts.
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ytnk_user -d ytnk_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # The backend API service.
+  backend:
+    # Build the image from the Dockerfile in the current directory.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ytnk_backend
+    restart: always
+    # Wait for the database service to be healthy before starting.
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Map the container's port to the host's port.
+      - "8000:8000"
+    volumes:
+      # Create a host-mounted volume for persistent storage of resume files.
+      - ./resumes:/app/resumes
+    env_file:
+      # Load environment variables from the local .env file.
+      - .env
+    command: >
+      sh -c "/app/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000"
+
+# Define the named volume for database persistence.
+volumes:
+  postgres_data:
