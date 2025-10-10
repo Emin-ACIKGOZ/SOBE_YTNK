@@ -1,32 +1,32 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/logo";
-import { signup } from "@/lib/api/auth";
-import Swal from "sweetalert2";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Logo } from '@/components/logo';
+import { signup } from '@/lib/api/auth';
+import Swal from 'sweetalert2';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("HR");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('HR');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     try {
       const res = await signup({ username, email, role, password });
@@ -36,43 +36,43 @@ export default function SignupPage() {
         const msg =
           err?.detail && Array.isArray(err.detail) && err.detail[0]?.msg
             ? err.detail[0].msg
-            : err?.detail || "Kayıt başarısız!";
+            : err?.detail || 'Kayıt başarısız!';
 
         await Swal.fire({
-          icon: "warning",
-          title: "Uyarı!",
+          icon: 'warning',
+          title: 'Uyarı!',
           text: msg,
-          confirmButtonText: "Tamam",
+          confirmButtonText: 'Tamam',
         });
 
         throw new Error(msg);
       }
 
       await Swal.fire({
-        icon: "success",
-        title: "Başarılı!",
-        text: "Kayıt işleminiz tamamlandı!",
-        confirmButtonText: "Giriş Yap",
+        icon: 'success',
+        title: 'Başarılı!',
+        text: 'Kayıt işleminiz tamamlandı!',
+        confirmButtonText: 'Giriş Yap',
       });
 
-      router.push("/login");
+      router.push('/login');
     } catch (err: any) {
       const msg =
         err?.message ||
         (err?.detail && Array.isArray(err.detail) && err.detail[0]?.msg
           ? err.detail[0].msg
-          : "Kayıt başarısız!");
+          : 'Kayıt başarısız!');
       setError(msg);
-      console.error("Signup error:", err);
+      console.error('Signup error:', err);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="mx-auto max-w-sm w-full">
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <Card className="mx-auto w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <Logo />
-          <CardTitle className="text-2xl font-headline mt-2">
+          <CardTitle className="mt-2 font-headline text-2xl">
             SÖBE İK Yönetim Sistemi Kayıt Ol
           </CardTitle>
           <CardDescription>
@@ -111,7 +111,7 @@ export default function SignupPage() {
                 required
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
             <Button type="submit" className="w-full">
               Kayıt Ol
             </Button>

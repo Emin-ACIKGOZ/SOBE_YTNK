@@ -32,7 +32,7 @@ RUN poetry install --no-root --only main
 COPY . .
 
 # --------------------
-# Stage 2: Final Image
+# Stage 2: Final Image (Simplified for Rootless Podman)
 # --------------------
 FROM python:3.10-slim AS final
 
@@ -40,20 +40,28 @@ FROM python:3.10-slim AS final
 WORKDIR /app
 
 # Install runtime dependencies needed for the application to run.
-# This is the key fix for the ImportError.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libtcl8.6 libtk8.6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the virtual environment from the builder stage.
-COPY --from=builder /app/backend/.venv /app/.venv
+# Define a cache directory for HuggingFace models
+ENV HF_CACHE_DIR=/app/.cache/huggingface
 
-# Copy the entire 'backend' directory, which is now a module, into the final image.
+# Copy the virtual environment and application code.
+COPY --from=builder /app/backend/.venv /app/.venv
 COPY --from=builder /app/backend /app/backend
+
+# CRITICAL FIX: Create necessary directories (resumes and cache).
+# These are owned by root (UID 0) inside the container, 
+# which is automatically mapped to your host user (UID 1000) by Podman.
+RUN mkdir -p /app/backend/resumes && \
+    mkdir -p ${HF_CACHE_DIR}
+
+# 💥 The 'USER appuser' command is REMOVED to run the process as C-UID 0 💥
 
 # Expose the port that the FastAPI application will run on.
 EXPOSE 8000
 
-# The command now correctly references the 'backend' module.
+# The command runs as C-UID 0 (mapped to Host UID 1000) for file access.
 CMD ["/app/.venv/bin/uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

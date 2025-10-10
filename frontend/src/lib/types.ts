@@ -1,4 +1,3 @@
-
 /**
  * İş İlanı detaylarını tanımlar.
  */

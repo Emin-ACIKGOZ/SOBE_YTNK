@@ -13,47 +13,54 @@ import { AxiosResponse } from 'axios';
  * API'den dönen tam İş İlanı (JobPosting) nesnesi için arayüz.
  */
 export interface JobPosting {
-    /** İş ilanının tekil kimliği (UUID). */
-    job_id: string;
+  /** İş ilanının tekil kimliği (UUID). */
+  job_id: string;
 
-    /** İş ilanının başlığı. */
-    title: string;
+  /** İş ilanının başlığı. */
+  title: string;
 
-    /** Şirket adı. */
-    company_name: string;
+  /** Şirket adı. */
+  company_name: string;
 
-    /** Çalışma konumu. */
-    location: string;
+  /** Çalışma konumu. */
+  location: string;
 
-    /** Deneyim seviyesi. (BACKEND ALIGNMENT) */
-    seniority_level: 'INTERNSHIP' | 'ENTRY_LEVEL' | 'JUNIOR_LEVEL' | 'MID_LEVEL' | 'SENIOR_LEVEL' | 'DIRECTOR' | 'EXECUTIVE';
+  /** Deneyim seviyesi. (BACKEND ALIGNMENT) */
+  seniority_level:
+    | 'INTERNSHIP'
+    | 'ENTRY_LEVEL'
+    | 'JUNIOR_LEVEL'
+    | 'MID_LEVEL'
+    | 'SENIOR_LEVEL'
+    | 'DIRECTOR'
+    | 'EXECUTIVE';
 
-    /** İstihdam türü. (BACKEND ALIGNMENT) */
-    employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
+  /** İstihdam türü. (BACKEND ALIGNMENT) */
+  employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
 
-    /** İşin genel tanımı. */
-    description: string;
+  /** İşin genel tanımı. */
+  description: string;
 
-    /** Çalışanın sorumlulukları listesi. */
-    responsibilities: string[];
+  /** Çalışanın sorumlulukları listesi. */
+  responsibilities: string[];
 
-    /** Adaydan beklenen nitelikler listesi. */
-    qualifications: string[];
+  /** Adaydan beklenen nitelikler listesi. */
+  qualifications: string[];
 
-    /** Gerekli yetenekler listesi. */
-    required_skills: string[];
+  /** Gerekli yetenekler listesi. */
+  required_skills: string[];
 
-    /** Maaş bilgisi (isteğe bağlı). */
-    salary?: string;
+  /** Maaş bilgisi (isteğe bağlı). */
+  salary?: string;
 
-    /** İlanın yayınlanma tarihi. */
-    posted_at?: string;
+  /** İlanın yayınlanma tarihi. */
+  posted_at?: string;
 
-    /** İlanın son güncellenme tarihi. */
-    updated_at?: string;
+  /** İlanın son güncellenme tarihi. */
+  updated_at?: string;
 
-    /** İlanın aktif olup olmadığını gösterir (soft-delete için). */
-    is_active: boolean;
+  /** İlanın aktif olup olmadığını gösterir (soft-delete için). */
+  is_active: boolean;
 }
 
 /**
@@ -61,37 +68,43 @@ export interface JobPosting {
  * Sunucu tarafından üretilen alanlar (ID, tarihler, is_active) hariç tutulur.
  */
 export interface JobCreatePayload {
-    title: string;
-    company_name: string;
-    location: string;
-    /** Deneyim seviyesi. (BACKEND ALIGNMENT) */
-    seniority_level: 'INTERNSHIP' | 'ENTRY_LEVEL' | 'JUNIOR_LEVEL' | 'MID_LEVEL' | 'SENIOR_LEVEL' | 'DIRECTOR' | 'EXECUTIVE';
-    /** İstihdam türü. (BACKEND ALIGNMENT) */
-    employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
-    description: string;
-    responsibilities: string[];
-    qualifications: string[];
-    required_skills: string[];
-    salary?: string;
+  title: string;
+  company_name: string;
+  location: string;
+  /** Deneyim seviyesi. (BACKEND ALIGNMENT) */
+  seniority_level:
+    | 'INTERNSHIP'
+    | 'ENTRY_LEVEL'
+    | 'JUNIOR_LEVEL'
+    | 'MID_LEVEL'
+    | 'SENIOR_LEVEL'
+    | 'DIRECTOR'
+    | 'EXECUTIVE';
+  /** İstihdam türü. (BACKEND ALIGNMENT) */
+  employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
+  description: string;
+  responsibilities: string[];
+  qualifications: string[];
+  required_skills: string[];
+  salary?: string;
 }
 
 /**
  * Tüm iş ilanları listesi API yanıtı için arayüz (Sayfalama verileri dahil).
  */
 export interface JobsListResponse {
-    /** İş ilanı listesi. */
-    jobs: JobPosting[];
+  /** İş ilanı listesi. */
+  jobs: JobPosting[];
 
-    /** Toplam ilan sayısı. */
-    total: number;
+  /** Toplam ilan sayısı. */
+  total: number;
 
-    /** Mevcut sayfa numarası. */
-    page: number;
+  /** Mevcut sayfa numarası. */
+  page: number;
 
-    /** Sayfa başına düşen öğe sayısı. */
-    per_page: number;
+  /** Sayfa başına düşen öğe sayısı. */
+  per_page: number;
 }
-
 
 // --- İş İlanı API Fonksiyonları ---
 
@@ -100,8 +113,10 @@ export interface JobsListResponse {
  * * @param jobData Yeni iş ilanına ait veriler.
  * @returns Oluşturulan İş İlanı nesnesini içeren Promise.
  */
-export const createJob = (jobData: JobCreatePayload): Promise<AxiosResponse<JobPosting>> => {
-    return apiClient.post('/jobs/', jobData);
+export const createJob = (
+  jobData: JobCreatePayload,
+): Promise<AxiosResponse<JobPosting>> => {
+  return apiClient.post('/jobs/', jobData);
 };
 
 /**
@@ -111,10 +126,10 @@ export const createJob = (jobData: JobCreatePayload): Promise<AxiosResponse<JobP
  * @returns İş İlanı nesneleri dizisini içeren Promise.
  */
 export const getJobs = (params?: {
-    skip?: number;
-    limit?: number;
+  skip?: number;
+  limit?: number;
 }): Promise<AxiosResponse<JobPosting[]>> => {
-    return apiClient.get('/jobs/', { params });
+  return apiClient.get('/jobs/', { params });
 };
 
 /**
@@ -123,7 +138,7 @@ export const getJobs = (params?: {
  * @returns İş İlanı nesnesini içeren Promise.
  */
 export const getJob = (id: string): Promise<AxiosResponse<JobPosting>> => {
-    return apiClient.get(`/jobs/${id}`);
+  return apiClient.get(`/jobs/${id}`);
 };
 
 /**
@@ -132,8 +147,11 @@ export const getJob = (id: string): Promise<AxiosResponse<JobPosting>> => {
  * @param jobData Güncellenecek alanları içeren kısmi veri.
  * @returns Güncellenmiş İş İlanı nesnesini içeren Promise.
  */
-export const updateJob = (id: string, jobData: Partial<JobCreatePayload>): Promise<AxiosResponse<JobPosting>> => {
-    return apiClient.put(`/jobs/${id}`, jobData);
+export const updateJob = (
+  id: string,
+  jobData: Partial<JobCreatePayload>,
+): Promise<AxiosResponse<JobPosting>> => {
+  return apiClient.put(`/jobs/${id}`, jobData);
 };
 
 /**
@@ -142,5 +160,5 @@ export const updateJob = (id: string, jobData: Partial<JobCreatePayload>): Promi
  * @returns İşlem başarılıysa (204 No Content) çözümlenen Promise.
  */
 export const deleteJob = (id: string): Promise<AxiosResponse<void>> => {
-    return apiClient.delete(`/jobs/${id}`);
+  return apiClient.delete(`/jobs/${id}`);
 };

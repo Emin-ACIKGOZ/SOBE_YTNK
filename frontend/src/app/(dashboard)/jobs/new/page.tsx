@@ -1,46 +1,66 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import axios from "axios"; // 👈 Import axios for error checking
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import axios from 'axios'; // 👈 Import axios for error checking
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/hooks/use-app";
-import { useToast } from "@/hooks/use-toast";
-import { createJob, JobCreatePayload } from "@/lib/api";
-
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useApp } from '@/hooks/use-app';
+import { useToast } from '@/hooks/use-toast';
+import { createJob, JobCreatePayload } from '@/lib/api';
 
 // 🚨 FIX 1: Align Zod schema enum values with the backend (JobCreatePayload)
 const formSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters long."),
-  company_name: z.string().min(2, "Company name is required."),
-  location: z.string().min(2, "Location is required."),
+  title: z.string().min(5, 'Title must be at least 5 characters long.'),
+  company_name: z.string().min(2, 'Company name is required.'),
+  location: z.string().min(2, 'Location is required.'),
   seniority_level: z.enum([
-    "INTERNSHIP",
-    "ENTRY_LEVEL",
-    "JUNIOR_LEVEL",
-    "MID_LEVEL",
-    "SENIOR_LEVEL",
-    "DIRECTOR",
-    "EXECUTIVE"
+    'INTERNSHIP',
+    'ENTRY_LEVEL',
+    'JUNIOR_LEVEL',
+    'MID_LEVEL',
+    'SENIOR_LEVEL',
+    'DIRECTOR',
+    'EXECUTIVE',
   ]),
   employment_type: z.enum([
-    "FULL_TIME",
-    "PART_TIME",
-    "CONTRACT",
-    "INTERNSHIP" // Removed TEMPORARY, added INTERNSHIP (from backend enum)
+    'FULL_TIME',
+    'PART_TIME',
+    'CONTRACT',
+    'INTERNSHIP', // Removed TEMPORARY, added INTERNSHIP (from backend enum)
   ]),
-  description: z.string().min(20, "Description must be at least 20 characters long."),
-  responsibilities: z.string().min(5, "Responsibilities are required."),
-  qualifications: z.string().min(5, "Qualifications are required."),
-  required_skills: z.string().min(5, "Required skills are required."),
+  description: z
+    .string()
+    .min(20, 'Description must be at least 20 characters long.'),
+  responsibilities: z.string().min(5, 'Responsibilities are required.'),
+  qualifications: z.string().min(5, 'Qualifications are required.'),
+  required_skills: z.string().min(5, 'Required skills are required.'),
   salary: z.string().optional(),
 });
 
@@ -51,17 +71,17 @@ export default function NewJobPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      company_name: "",
-      location: "",
+      title: '',
+      company_name: '',
+      location: '',
       // 🚨 FIX 2: Update default values to match the new enum strings
-      seniority_level: "JUNIOR_LEVEL",
-      employment_type: "FULL_TIME",
-      description: "",
-      responsibilities: "",
-      qualifications: "",
-      required_skills: "",
-      salary: "",
+      seniority_level: 'JUNIOR_LEVEL',
+      employment_type: 'FULL_TIME',
+      description: '',
+      responsibilities: '',
+      qualifications: '',
+      required_skills: '',
+      salary: '',
     },
   });
 
@@ -75,9 +95,18 @@ export default function NewJobPage() {
         employment_type: values.employment_type,
         description: values.description,
         // Map multiline strings into arrays
-        responsibilities: values.responsibilities.split("\n").map((r) => r.trim()).filter(Boolean),
-        qualifications: values.qualifications.split("\n").map((q) => q.trim()).filter(Boolean),
-        required_skills: values.required_skills.split("\n").map((s) => s.trim()).filter(Boolean),
+        responsibilities: values.responsibilities
+          .split('\n')
+          .map((r) => r.trim())
+          .filter(Boolean),
+        qualifications: values.qualifications
+          .split('\n')
+          .map((q) => q.trim())
+          .filter(Boolean),
+        required_skills: values.required_skills
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean),
         salary: values.salary || undefined,
       };
 
@@ -85,20 +114,21 @@ export default function NewJobPage() {
 
       if (response.status !== 201) {
         // This throw statement is okay, but we should handle the error response data below
-        throw new Error("Failed to create job posting with non-201 status.");
+        throw new Error('Failed to create job posting with non-201 status.');
       }
 
       toast({
-        title: "İş İlanı Oluşturuldu",
+        title: 'İş İlanı Oluşturuldu',
         description: `"${values.title}" ünvanına sahip iş ilanı başarılı bir şekilde oluşturuldu.`,
       });
 
-      router.push("/jobs");
-
-    } catch (error: unknown) { // Use unknown for safer type checking
+      router.push('/jobs');
+    } catch (error: unknown) {
+      // Use unknown for safer type checking
       console.error('Error creating job posting:', error);
 
-      let errorMessage = "İş ilanı oluşturulurken bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.";
+      let errorMessage =
+        'İş ilanı oluşturulurken bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.';
 
       if (axios.isAxiosError(error) && error.response) {
         const responseData = error.response.data;
@@ -114,7 +144,10 @@ export default function NewJobPage() {
           errorMessage = errorMessages.join('; ');
         }
         // Handle other simple detail messages or Axios errors
-        else if (responseData.detail && typeof responseData.detail === 'string') {
+        else if (
+          responseData.detail &&
+          typeof responseData.detail === 'string'
+        ) {
           errorMessage = responseData.detail;
         } else if (error.message) {
           errorMessage = error.message;
@@ -123,9 +156,9 @@ export default function NewJobPage() {
 
       // Pass the fully constructed STRING message to the toast
       toast({
-        title: "Hata",
+        title: 'Hata',
         description: errorMessage, // 👈 Now this is guaranteed to be a STRING
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   }
@@ -134,13 +167,16 @@ export default function NewJobPage() {
     <div className="container mx-auto max-w-3xl">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Yeni İş İlanı Oluştur</CardTitle>
-          <CardDescription>Yeni bir açık pozisyon oluşturmak için aşağıdaki bilgileri doldurun.</CardDescription>
+          <CardTitle className="font-headline text-2xl">
+            Yeni İş İlanı Oluştur
+          </CardTitle>
+          <CardDescription>
+            Yeni bir açık pozisyon oluşturmak için aşağıdaki bilgileri doldurun.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
               {/* Title, Company, Location fields remain the same */}
               {/* ... */}
               <FormField
@@ -150,7 +186,10 @@ export default function NewJobPage() {
                   <FormItem>
                     <FormLabel>İş Ünvanı</FormLabel>
                     <FormControl>
-                      <Input placeholder="örn; Kıdemli Yazılım Mühendisi" {...field} />
+                      <Input
+                        placeholder="örn; Kıdemli Yazılım Mühendisi"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -199,7 +238,9 @@ export default function NewJobPage() {
                       <SelectContent>
                         {/* 🚨 FIX 4: Update SelectItem values to match Zod and Backend */}
                         <SelectItem value="INTERNSHIP">Stajyer</SelectItem>
-                        <SelectItem value="ENTRY_LEVEL">Giriş Seviyesi</SelectItem>
+                        <SelectItem value="ENTRY_LEVEL">
+                          Giriş Seviyesi
+                        </SelectItem>
                         <SelectItem value="JUNIOR_LEVEL">Junior</SelectItem>
                         <SelectItem value="MID_LEVEL">Orta Seviye</SelectItem>
                         <SelectItem value="SENIOR_LEVEL">Senior</SelectItem>
@@ -244,7 +285,11 @@ export default function NewJobPage() {
                   <FormItem>
                     <FormLabel>İş Açıklaması</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Rolü ve sorumlulukları tanımlayın." rows={6} {...field} />
+                      <Textarea
+                        placeholder="Rolü ve sorumlulukları tanımlayın."
+                        rows={6}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -312,7 +357,10 @@ export default function NewJobPage() {
                   <FormItem>
                     <FormLabel>Maaş (İsteğe Bağlı)</FormLabel>
                     <FormControl>
-                      <Input placeholder="örn; 15.000 TL / ay veya 180.000 TL / yıl" {...field} />
+                      <Input
+                        placeholder="örn; 15.000 TL / ay veya 180.000 TL / yıl"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -321,7 +369,11 @@ export default function NewJobPage() {
               {/* ... */}
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
                   İptal
                 </Button>
                 <Button type="submit" disabled={form.formState.isSubmitting}>

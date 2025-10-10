@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Bell, Briefcase, PlusCircle } from "lucide-react";
+import type { ReactNode } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Bell, Briefcase, PlusCircle } from 'lucide-react';
 
-import { AppProvider } from "@/context/app-context";
+import { AppProvider } from '@/context/app-context';
 import {
   SidebarProvider,
   Sidebar,
@@ -15,9 +15,9 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +25,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Logo } from "@/components/logo";
+} from '@/components/ui/dropdown-menu';
+import { Logo } from '@/components/logo';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -36,7 +36,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <Logo />
-              <span className="text-md font-semibold font-headline">SÖBE İK Yönetim Sistemi</span>
+              <span className="text-md font-headline font-semibold">
+                SÖBE İK Yönetim Sistemi
+              </span>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -62,14 +64,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <SidebarFooter>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="justify-start gap-2 w-full px-2 h-14">
+                <Button
+                  variant="ghost"
+                  className="h-14 w-full justify-start gap-2 px-2"
+                >
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src="" alt="@hr-personnel" data-ai-hint="person face" />
+                    <AvatarImage
+                      src=""
+                      alt="@hr-personnel"
+                      data-ai-hint="person face"
+                    />
                     <AvatarFallback>A</AvatarFallback>
                   </Avatar>
-                  <div className="text-left hidden group-data-[state=expanded]:block">
+                  <div className="hidden text-left group-data-[state=expanded]:block">
                     <p className="text-sm font-medium">Admin</p>
-                    <p className="text-xs text-muted-foreground">admin@havelsan.com.tr</p>
+                    <p className="text-xs text-muted-foreground">
+                      admin@havelsan.com.tr
+                    </p>
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -92,7 +103,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6 sticky top-0 z-10">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
             <SidebarTrigger className="shrink-0 md:hidden" />
             <div className="w-full flex-1">
               {/* Optional: Add a global search here */}

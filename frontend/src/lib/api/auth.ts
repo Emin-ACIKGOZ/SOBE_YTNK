@@ -61,7 +61,6 @@ export interface LoginResponse {
   refresh_token?: string;
 }
 
-
 // --- Kimlik Doğrulama API Fonksiyonları ---
 
 /**
@@ -73,7 +72,7 @@ export const signup = async (data: SignupPayload): Promise<Response> => {
   const response = await fetch(`${base_url}/auth/signup`, {
     method: 'POST',
     headers: {
-      'accept': 'application/json',
+      accept: 'application/json',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
@@ -99,7 +98,7 @@ export const login = async (data: LoginPayload): Promise<Response> => {
   const response = await fetch(`${base_url}/auth/token`, {
     method: 'POST',
     headers: {
-      'accept': 'application/json',
+      accept: 'application/json',
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: formBody.toString(),
@@ -137,7 +136,6 @@ export const logout = async () => {
     }
   }
 };
-
 
 // --- Yardımcı Fonksiyonlar ---
 

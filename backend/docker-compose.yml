@@ -16,7 +16,7 @@ services:
       # Mount a named volume to persist database data across container restarts.
       - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ytnk_user -d ytnk_db"]
+      test: [ "CMD-SHELL", "pg_isready -U ytnk_user -d ytnk_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,14 +36,15 @@ services:
     ports:
       # Map the container's port to the host's port.
       - "8000:8000"
+    environment:
+      # NEW: Direct the Hugging Face/transformers library to a writable cache directory.
+      - HF_HOME=/app/.cache/huggingface
     volumes:
-      # Create a host-mounted volume for persistent storage of resume files.
-      - ./resumes:/app/resumes
+      # Host-mounted volume for persistent storage of resume files (with Podman :Z fix).
+      - ./resumes:/app/backend/resumes:Z
     env_file:
-      # Load environment variables from the local .env file.
+      # Load environment variables from the local .env file, including RESUME_UPLOAD_DIR.
       - .env
-    command: >
-      sh -c "/app/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000"
 
 # Define the named volume for database persistence.
 volumes:

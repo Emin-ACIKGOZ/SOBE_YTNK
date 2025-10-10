@@ -40,7 +40,7 @@ router = APIRouter(prefix="/ranking", tags=["ranking"])
 logger = logging.getLogger(__name__)
 
 # Directory to save uploaded resumes
-UPLOAD_DIRECTORY = "./resumes"
+UPLOAD_DIRECTORY = os.getenv("RESUME_UPLOAD_DIR", "./resumes")
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 

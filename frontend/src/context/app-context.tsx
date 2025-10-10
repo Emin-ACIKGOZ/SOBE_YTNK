@@ -1,17 +1,35 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
-import { createContext, useState, useCallback, useMemo, useEffect } from "react";
-import { getJobs, createJob, JobPosting, JobCreatePayload } from "@/lib/api/jobs";
-import { getApplications, createApplication, Application, ApplicationCreate } from "@/lib/api/applications";
-import { Applicant, getApplicants } from "@/lib/api/applicants";
+import type { ReactNode } from 'react';
+import {
+  createContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+} from 'react';
+import {
+  getJobs,
+  createJob,
+  JobPosting,
+  JobCreatePayload,
+} from '@/lib/api/jobs';
+import {
+  getApplications,
+  createApplication,
+  Application,
+  ApplicationCreate,
+} from '@/lib/api/applications';
+import { Applicant, getApplicants } from '@/lib/api/applicants';
 
 interface AppContextType {
   jobPostings: JobPosting[];
   applications: Application[];
   applicants: Applicant[];
   addJobPosting: (job: JobCreatePayload) => Promise<JobPosting | undefined>;
-  addApplication: (application: ApplicationCreate) => Promise<Application | undefined>;
+  addApplication: (
+    application: ApplicationCreate,
+  ) => Promise<Application | undefined>;
   getJobById: (id: string) => JobPosting | undefined;
   getApplicationsForJob: (jobId: string) => Application[];
   getApplicantById: (id: string) => Applicant | undefined;
@@ -30,18 +48,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [jobsResponse, applicationsResponse, applicantsResponse] = await Promise.all([
-          getJobs(),
-          getApplications(),
-          getApplicants(),
-        ]);
+        const [jobsResponse, applicationsResponse, applicantsResponse] =
+          await Promise.all([getJobs(), getApplications(), getApplicants()]);
 
         setJobPostings(jobsResponse.data);
         setApplications(applicationsResponse.data);
         setApplicants(applicantsResponse.data);
         setError(null);
       } catch (err) {
-        setError("Veri alınırken bir hata oluştu.");
+        setError('Veri alınırken bir hata oluştu.');
       } finally {
         setLoading(false);
       }
@@ -72,19 +87,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const getJobById = useCallback((id: string) => {
-    return jobPostings.find((job) => job.job_id === id);
-  }, [jobPostings]);
+  const getJobById = useCallback(
+    (id: string) => {
+      return jobPostings.find((job) => job.job_id === id);
+    },
+    [jobPostings],
+  );
 
-  const getApplicationsForJob = useCallback((jobId: string) => {
-    return applications
-      .filter((app) => app.job_id === jobId)
-      .sort((a, b) => (b.ranking_score || 0) - (a.ranking_score || 0));
-  }, [applications]);
+  const getApplicationsForJob = useCallback(
+    (jobId: string) => {
+      return applications
+        .filter((app) => app.job_id === jobId)
+        .sort((a, b) => (b.ranking_score || 0) - (a.ranking_score || 0));
+    },
+    [applications],
+  );
 
-  const getApplicantById = useCallback((id: string) => {
-    return applicants.find((applicant) => applicant.applicant_id === id);
-  }, [applicants]);
+  const getApplicantById = useCallback(
+    (id: string) => {
+      return applicants.find((applicant) => applicant.applicant_id === id);
+    },
+    [applicants],
+  );
 
   const value = useMemo(
     () => ({
@@ -106,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getJobById,
       getApplicationsForJob,
       getApplicantById,
-    ]
+    ],
   );
 
   if (loading) {

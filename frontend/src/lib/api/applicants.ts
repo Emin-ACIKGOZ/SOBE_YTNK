@@ -7,32 +7,32 @@ import { AxiosResponse } from 'axios';
  * API'den dönen tam Aday (Applicant) nesnesi için arayüz.
  */
 export interface Applicant {
-    /** Adayın tekil kimliği (UUID). */
-    applicant_id: string;
+  /** Adayın tekil kimliği (UUID). */
+  applicant_id: string;
 
-    first_name: string;
+  first_name: string;
 
-    last_name: string;
+  last_name: string;
 
-    email: string;
+  email: string;
 
-    phone_number: string | null;
+  phone_number: string | null;
 
-    linkedin_profile_url: string | null;
+  linkedin_profile_url: string | null;
 
-    github_profile_url: string | null;
+  github_profile_url: string | null;
 }
 
 /**
  * Yeni bir Aday oluşturmak için gerekli olan veriler.
  */
 export interface ApplicantCreate {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone_number?: string | null;
-    linkedin_profile_url?: string | null;
-    github_profile_url?: string | null;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number?: string | null;
+  linkedin_profile_url?: string | null;
+  github_profile_url?: string | null;
 }
 
 /**
@@ -40,14 +40,13 @@ export interface ApplicantCreate {
  * Tüm alanlar isteğe bağlıdır.
  */
 export interface ApplicantUpdate {
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone_number?: string | null;
-    linkedin_profile_url?: string | null;
-    github_profile_url?: string | null;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone_number?: string | null;
+  linkedin_profile_url?: string | null;
+  github_profile_url?: string | null;
 }
-
 
 // --- Aday API Fonksiyonları ---
 
@@ -59,9 +58,9 @@ const APPLICANTS_BASE_PATH = '/applicants';
  * @returns Oluşturulan Aday nesnesini içeren bir Promise.
  */
 export const createApplicant = (
-    applicantData: ApplicantCreate
+  applicantData: ApplicantCreate,
 ): Promise<AxiosResponse<Applicant>> => {
-    return apiClient.post(APPLICANTS_BASE_PATH, applicantData);
+  return apiClient.post(APPLICANTS_BASE_PATH, applicantData);
 };
 
 /**
@@ -70,9 +69,9 @@ export const createApplicant = (
  * @returns Aday nesnesini içeren bir Promise.
  */
 export const getApplicant = (
-    applicantId: string
+  applicantId: string,
 ): Promise<AxiosResponse<Applicant>> => {
-    return apiClient.get(`${APPLICANTS_BASE_PATH}/${applicantId}`);
+  return apiClient.get(`${APPLICANTS_BASE_PATH}/${applicantId}`);
 };
 
 /**
@@ -82,12 +81,12 @@ export const getApplicant = (
  * @returns Aday nesnelerinden oluşan bir diziyi içeren Promise.
  */
 export const getApplicants = (
-    skip: number = 0,
-    limit: number = 100
+  skip: number = 0,
+  limit: number = 100,
 ): Promise<AxiosResponse<Applicant[]>> => {
-    return apiClient.get(APPLICANTS_BASE_PATH, {
-        params: { skip, limit },
-    });
+  return apiClient.get(APPLICANTS_BASE_PATH, {
+    params: { skip, limit },
+  });
 };
 
 /**
@@ -97,10 +96,10 @@ export const getApplicants = (
  * @returns Güncellenmiş Aday nesnesini içeren bir Promise.
  */
 export const updateApplicant = (
-    applicantId: string,
-    updateData: ApplicantUpdate
+  applicantId: string,
+  updateData: ApplicantUpdate,
 ): Promise<AxiosResponse<Applicant>> => {
-    return apiClient.put(`${APPLICANTS_BASE_PATH}/${applicantId}`, updateData);
+  return apiClient.put(`${APPLICANTS_BASE_PATH}/${applicantId}`, updateData);
 };
 
 /**
@@ -109,7 +108,7 @@ export const updateApplicant = (
  * @returns Başarılı silme durumunda (204 No Content) çözümlenen bir Promise.
  */
 export const deleteApplicant = (
-    applicantId: string
+  applicantId: string,
 ): Promise<AxiosResponse<void>> => {
-    return apiClient.delete(`${APPLICANTS_BASE_PATH}/${applicantId}`);
+  return apiClient.delete(`${APPLICANTS_BASE_PATH}/${applicantId}`);
 };

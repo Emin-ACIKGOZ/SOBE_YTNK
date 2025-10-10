@@ -1,13 +1,19 @@
-"use client";
+'use client';
 
-import { useToast } from "@/hooks/use-toast";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, useContext } from "react";
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useContext } from 'react';
 
-import { CvUpload } from "@/components/cv-upload";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CvUpload } from '@/components/cv-upload';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -15,16 +21,37 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getJob } from "@/lib/api";
-import { updateApplicationStatus, Application } from "@/lib/api/applications";
-import { getRankings, getResumeRankings, ranking } from "@/lib/api/ranking";
-import { ArrowLeft, Briefcase, Building2, Calendar, Clock, Code, DollarSign, FileText, GraduationCap, Loader2, MapPin, Star, User, Users } from "lucide-react";
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { getJob } from '@/lib/api';
+import { updateApplicationStatus, Application } from '@/lib/api/applications';
+import { getRankings, getResumeRankings, ranking } from '@/lib/api/ranking';
+import {
+  ArrowLeft,
+  Briefcase,
+  Building2,
+  Calendar,
+  Clock,
+  Code,
+  DollarSign,
+  FileText,
+  GraduationCap,
+  Loader2,
+  MapPin,
+  Star,
+  User,
+  Users,
+} from 'lucide-react';
 
-import { AppContext } from "@/context/app-context";
-import { Applicant } from "@/lib/api/applicants";
-import { Button } from "@/components/ui/button";
+import { AppContext } from '@/context/app-context';
+import { Applicant } from '@/lib/api/applicants';
+import { Button } from '@/components/ui/button';
 
 interface Job {
   job_id: string;
@@ -81,28 +108,28 @@ interface Education {
 }
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
-  'FULL_TIME': 'Tam Zamanlı',
-  'PART_TIME': 'Yarı Zamanlı',
-  'CONTRACT': 'Sözleşmeli',
-  'INTERNSHIP': 'Staj',
-  'FREELANCE': 'Serbest Çalışan'
+  FULL_TIME: 'Tam Zamanlı',
+  PART_TIME: 'Yarı Zamanlı',
+  CONTRACT: 'Sözleşmeli',
+  INTERNSHIP: 'Staj',
+  FREELANCE: 'Serbest Çalışan',
 };
 
 const SENIORITY_LEVEL_LABELS: Record<string, string> = {
-  'INTERNSHIP': 'Staj',
-  'JUNIOR': 'Junior',
-  'MID': 'Mid-Level',
-  'SENIOR': 'Senior',
-  'LEAD': 'Lead',
-  'MANAGER': 'Manager'
+  INTERNSHIP: 'Staj',
+  JUNIOR: 'Junior',
+  MID: 'Mid-Level',
+  SENIOR: 'Senior',
+  LEAD: 'Lead',
+  MANAGER: 'Manager',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  'RECEIVED': 'Başvuru Alındı',
-  'IN_REVIEW': 'İncelemede',
-  'SHORTLISTED': 'Kısa Listede',
-  'HIRED': 'İşe Alındı',
-  'REJECTED': 'Reddedildi',
+  RECEIVED: 'Başvuru Alındı',
+  IN_REVIEW: 'İncelemede',
+  SHORTLISTED: 'Kısa Listede',
+  HIRED: 'İşe Alındı',
+  REJECTED: 'Reddedildi',
 };
 
 const getStatusBadgeClass = (status: string): string => {
@@ -149,14 +176,22 @@ const normalizeName = (name: string): string => {
     .trim()
     .toLowerCase()
     .split(/\s+/)
-    .map(word => {
+    .map((word) => {
       if (word.length === 0) return '';
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(' ');
 };
 
-const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Candidate; applicant: Applicant; onStatusChange: (applicationId: string, newStatus: string) => void }) => {
+const CandidateCard = ({
+  candidate,
+  applicant,
+  onStatusChange,
+}: {
+  candidate: Candidate;
+  applicant: Applicant;
+  onStatusChange: (applicationId: string, newStatus: string) => void;
+}) => {
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
@@ -169,7 +204,7 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
       return new Date(dateString).toLocaleDateString('tr-TR', {
         year: 'numeric',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
       });
     } catch {
       return dateString;
@@ -192,7 +227,6 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
 
   const handleViewCV = async () => {
     try {
-
       setIsLoadingPdf(true);
 
       const response = await getResumeRankings(candidate.application_id);
@@ -205,17 +239,16 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
         setShowPdf(true);
       } else {
         toast({
-          variant: "destructive",
-          title: "PDF Yükleme Hatası",
-          description: "PDF verisi bulunamadı. Lütfen tekrar deneyin.",
+          variant: 'destructive',
+          title: 'PDF Yükleme Hatası',
+          description: 'PDF verisi bulunamadı. Lütfen tekrar deneyin.',
         });
       }
-
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "PDF Yükleme Hatası",
-        description: "CV yüklenirken bir hata oluştu. Lütfen tekrar deneyin.",
+        variant: 'destructive',
+        title: 'PDF Yükleme Hatası',
+        description: 'CV yüklenirken bir hata oluştu. Lütfen tekrar deneyin.',
       });
     } finally {
       setIsLoadingPdf(false);
@@ -231,18 +264,22 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateApplicationStatus(candidate.application_id, newStatus as Application['status']);
+      await updateApplicationStatus(
+        candidate.application_id,
+        newStatus as Application['status'],
+      );
       toast({
-        title: "Durum Güncellendi",
+        title: 'Durum Güncellendi',
         description: `Adayın durumu başarıyla "${STATUS_LABELS[newStatus]}" olarak güncellendi.`,
       });
       setIsDialogOpen(false);
       onStatusChange(candidate.application_id, newStatus);
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Durum Güncelleme Hatası",
-        description: "Durum güncellenirken bir hata oluştu. Lütfen tekrar deneyin.",
+        variant: 'destructive',
+        title: 'Durum Güncelleme Hatası',
+        description:
+          'Durum güncellenirken bir hata oluştu. Lütfen tekrar deneyin.',
       });
     }
   };
@@ -261,22 +298,31 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
 
   return (
     <div className="space-y-4">
-      <Card className="hover:shadow-md transition-shadow">
+      <Card className="transition-shadow hover:shadow-md">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                {candidateName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 font-bold text-white">
+                {candidateName
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase()}
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold">{candidateName}</CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-1">
+                <CardTitle className="text-lg font-semibold">
+                  {candidateName}
+                </CardTitle>
+                <CardDescription className="mt-1 flex items-center gap-2">
                   <User className="h-3 w-3" />
                   <span className="text-xs">ID: {candidate.applicant_id}</span>
                 </CardDescription>
               </div>
             </div>
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreColor(candidate.ranking_score)}`}>
+            <div
+              className={`rounded-full px-3 py-1 text-sm font-medium ${getScoreColor(candidate.ranking_score)}`}
+            >
               <div className="flex items-center gap-1">
                 <Star className="h-3 w-3" />
                 {Math.round(candidate.ranking_score * 100)}%
@@ -289,19 +335,19 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant="default"
-                className={`text-sm px-3 py-1 font-bold transition-colors duration-300 ${getStatusBadgeClass(candidate.status)}`}
+                className={`px-3 py-1 text-sm font-bold transition-colors duration-300 ${getStatusBadgeClass(candidate.status)}`}
               >
                 {STATUS_LABELS[candidate.status] || candidate.status}
               </Badge>
               <Badge
                 variant="outline"
-                className={`text-sm px-3 py-1 transition-colors duration-300 ${getScoreBadgeClass(candidate.ranking_score)}`}
+                className={`px-3 py-1 text-sm transition-colors duration-300 ${getScoreBadgeClass(candidate.ranking_score)}`}
               >
                 {getScoreText(candidate.ranking_score)}
               </Badge>
               <Badge
                 variant="secondary"
-                className={`text-sm px-3 py-1 transition-colors duration-300 ${getExperienceBadgeClass(candidate.total_years_experience)}`}
+                className={`px-3 py-1 text-sm transition-colors duration-300 ${getExperienceBadgeClass(candidate.total_years_experience)}`}
               >
                 {candidate.total_years_experience} yıl deneyim
               </Badge>
@@ -311,7 +357,8 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
                 <span className="text-sm font-semibold">
-                  <span className="font-bold">Başvuru:</span> {formatDate(candidate.application_date)}
+                  <span className="font-bold">Başvuru:</span>{' '}
+                  {formatDate(candidate.application_date)}
                 </span>
               </div>
 
@@ -337,7 +384,8 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                   <div key={index} className="flex items-center gap-2">
                     <Briefcase className="h-3 w-3" />
                     <span>
-                      {exp.job_title} ({formatDate(exp.start_date)} - {formatDate(exp.end_date)})
+                      {exp.job_title} ({formatDate(exp.start_date)} -{' '}
+                      {formatDate(exp.end_date)})
                     </span>
                   </div>
                 ))}
@@ -346,13 +394,14 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
 
             {candidate.parsed_skills.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <Code className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-sm font-semibold text-muted-foreground">Yetenekler</span>
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Yetenekler
+                  </span>
                 </div>
 
                 <div className="flex flex-wrap gap-1">
-
                   {visibleSkills.map((skill, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {skill}
@@ -360,11 +409,9 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                   ))}
 
                   <div
-                    className="flex flex-wrap gap-1 transition-all ease-in-out duration-300"
+                    className="flex flex-wrap gap-1 transition-all duration-300 ease-in-out"
                     style={{
-                      transitionDelay: isSkillsListOpen
-                        ? '125ms'
-                        : '0ms',
+                      transitionDelay: isSkillsListOpen ? '125ms' : '0ms',
                       transitionProperty: 'max-height, opacity',
                       maxHeight: isSkillsListOpen ? '300px' : '0',
                       opacity: isSkillsListOpen ? '1' : '0',
@@ -373,7 +420,11 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                     }}
                   >
                     {hiddenSkills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="text-xs"
+                      >
                         {skill}
                       </Badge>
                     ))}
@@ -383,17 +434,19 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                 {shouldShowToggleButton && (
                   <div className="mt-2">
                     <Badge
-                      className="text-xs cursor-pointer bg-green-100 text-green-700 hover:bg-green-200 transition-colors duration-200"
+                      className="cursor-pointer bg-green-100 text-xs text-green-700 transition-colors duration-200 hover:bg-green-200"
                       onClick={toggleSkills}
                     >
-                      {isSkillsListOpen ? 'Daha az göster' : `+${hiddenSkills.length} daha`}
+                      {isSkillsListOpen
+                        ? 'Daha az göster'
+                        : `+${hiddenSkills.length} daha`}
                     </Badge>
                   </div>
                 )}
               </div>
             )}
 
-            <div className="flex gap-2 pt-2 border-t">
+            <div className="flex gap-2 border-t pt-2">
               {showPdf ? (
                 <Button
                   size="sm"
@@ -431,20 +484,26 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
                       <DialogHeader>
                         <DialogTitle>Başvuru Durumunu Güncelle</DialogTitle>
                         <DialogDescription>
-                          {candidateName} adlı adayın başvuru durumunu buradan değiştirebilirsiniz.
+                          {candidateName} adlı adayın başvuru durumunu buradan
+                          değiştirebilirsiniz.
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="py-4 space-y-4">
-                        <Select onValueChange={handleStatusChange} value={candidate.status}>
+                      <div className="space-y-4 py-4">
+                        <Select
+                          onValueChange={handleStatusChange}
+                          value={candidate.status}
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Durum Seçin" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                              <SelectItem key={key} value={key}>
-                                {label}
-                              </SelectItem>
-                            ))}
+                            {Object.entries(STATUS_LABELS).map(
+                              ([key, label]) => (
+                                <SelectItem key={key} value={key}>
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -465,7 +524,7 @@ const CandidateCard = ({ candidate, applicant, onStatusChange }: { candidate: Ca
             </div>
           </CardHeader>
           <CardContent>
-            <div className="w-full h-[800px] border rounded-lg overflow-hidden">
+            <div className="h-[800px] w-full overflow-hidden rounded-lg border">
               <iframe
                 src={pdfData}
                 width="100%"
@@ -507,7 +566,7 @@ export default function JobDetailPage() {
         const response = await getJob(jobId);
         setJob(response.data as Job);
       } catch (error) {
-        setJobError("İş ilanı yüklenirken bir hata oluştu.");
+        setJobError('İş ilanı yüklenirken bir hata oluştu.');
       } finally {
         setIsJobLoading(false);
       }
@@ -516,10 +575,11 @@ export default function JobDetailPage() {
     const getCandidatesForJob = async () => {
       try {
         const response = await getRankings(jobId);
-        const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
+        const sortedCandidates = (response.data as Candidate[]).sort(
+          (a, b) => b.ranking_score - a.ranking_score,
+        );
         setCandidates(sortedCandidates);
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     fetchJob();
@@ -534,18 +594,20 @@ export default function JobDetailPage() {
       const rankingResult = await ranking(job.job_id, file);
 
       const response = await getRankings(job.job_id);
-      const sortedCandidates = (response.data as Candidate[]).sort((a, b) => b.ranking_score - a.ranking_score);
+      const sortedCandidates = (response.data as Candidate[]).sort(
+        (a, b) => b.ranking_score - a.ranking_score,
+      );
       setCandidates(sortedCandidates);
 
       toast({
-        title: "CV İşlendi",
+        title: 'CV İşlendi',
         description: `${file.name} başarıyla analiz edildi ve sıralandı.`,
       });
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Yükleme Başarısız",
-        description: "CV yüklenirken bir hata oluştu. Lütfen tekrar deneyin.",
+        variant: 'destructive',
+        title: 'Yükleme Başarısız',
+        description: 'CV yüklenirken bir hata oluştu. Lütfen tekrar deneyin.',
       });
     } finally {
       setIsLoading(false);
@@ -553,10 +615,10 @@ export default function JobDetailPage() {
   };
 
   const handleStatusChange = (applicationId: string, newStatus: string) => {
-    setCandidates(prevCandidates =>
-      prevCandidates.map(c =>
-        c.application_id === applicationId ? { ...c, status: newStatus } : c
-      )
+    setCandidates((prevCandidates) =>
+      prevCandidates.map((c) =>
+        c.application_id === applicationId ? { ...c, status: newStatus } : c,
+      ),
     );
   };
 
@@ -565,7 +627,7 @@ export default function JobDetailPage() {
       return new Date(dateString).toLocaleDateString('tr-TR', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
     } catch {
       return dateString;
@@ -586,9 +648,9 @@ export default function JobDetailPage() {
   if (jobError) {
     return (
       <div className="container mx-auto">
-        <div className="text-center py-20">
+        <div className="py-20 text-center">
           <h2 className="text-xl font-semibold text-red-600">Hata</h2>
-          <p className="text-muted-foreground mt-2">{jobError}</p>
+          <p className="mt-2 text-muted-foreground">{jobError}</p>
           <Link href="/jobs" className="mt-4 inline-block">
             <Button>İş İlanları</Button>
           </Link>
@@ -600,9 +662,11 @@ export default function JobDetailPage() {
   if (!job) {
     return (
       <div className="container mx-auto">
-        <div className="text-center py-20">
+        <div className="py-20 text-center">
           <h2 className="text-xl font-semibold">İş ilanı bulunamadı</h2>
-          <p className="text-muted-foreground mt-2">Bu iş ilanı mevcut değil veya kaldırılmış.</p>
+          <p className="mt-2 text-muted-foreground">
+            Bu iş ilanı mevcut değil veya kaldırılmış.
+          </p>
           <Link href="/jobs" className="mt-4 inline-block">
             <Button>İş İlanları</Button>
           </Link>
@@ -613,13 +677,18 @@ export default function JobDetailPage() {
 
   return (
     <div className="container mx-auto">
-      <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-4 -ml-4">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.back()}
+        className="-ml-4 mb-4"
+      >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Geri dön
       </Button>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1 space-y-6">
+        <div className="space-y-6 lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline">{job.title}</CardTitle>
@@ -633,13 +702,18 @@ export default function JobDetailPage() {
                   {job.location}
                 </Badge>
                 <Badge variant="outline">
-                  {EMPLOYMENT_TYPE_LABELS[job.employment_type] || job.employment_type}
+                  {EMPLOYMENT_TYPE_LABELS[job.employment_type] ||
+                    job.employment_type}
                 </Badge>
                 <Badge variant="outline">
-                  {SENIORITY_LEVEL_LABELS[job.seniority_level] || job.seniority_level}
+                  {SENIORITY_LEVEL_LABELS[job.seniority_level] ||
+                    job.seniority_level}
                 </Badge>
                 {job.salary && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
                     <DollarSign className="h-3 w-3" />
                     {job.salary}
                   </Badge>
@@ -648,17 +722,19 @@ export default function JobDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">Açıklama</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{job.description}</p>
+                <h4 className="mb-2 font-semibold">Açıklama</h4>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {job.description}
+                </p>
               </div>
 
               {job.responsibilities.length > 0 && (
                 <div>
-                  <h4 className="font-semibold mb-2">Sorumluluklar</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
+                  <h4 className="mb-2 font-semibold">Sorumluluklar</h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
                     {job.responsibilities.map((responsibility, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-primary mt-1">•</span>
+                        <span className="mt-1 text-primary">•</span>
                         <span>{responsibility}</span>
                       </li>
                     ))}
@@ -668,10 +744,14 @@ export default function JobDetailPage() {
 
               {job.required_skills.length > 0 && (
                 <div>
-                  <h4 className="font-semibold mb-2">Gerekli Yetenekler</h4>
+                  <h4 className="mb-2 font-semibold">Gerekli Yetenekler</h4>
                   <div className="flex flex-wrap gap-1">
                     {job.required_skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="text-xs"
+                      >
                         {skill}
                       </Badge>
                     ))}
@@ -681,11 +761,11 @@ export default function JobDetailPage() {
 
               {job.qualifications.length > 0 && (
                 <div>
-                  <h4 className="font-semibold mb-2">Nitelikler</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
+                  <h4 className="mb-2 font-semibold">Nitelikler</h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
                     {job.qualifications.map((qualification, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-primary mt-1">•</span>
+                        <span className="mt-1 text-primary">•</span>
                         <span>{qualification}</span>
                       </li>
                     ))}
@@ -693,13 +773,15 @@ export default function JobDetailPage() {
                 </div>
               )}
 
-              <div className="pt-2 border-t">
+              <div className="border-t pt-2">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   <span>İlan Tarihi: {formatDate(job.posted_at)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                  <div className={`h-2 w-2 rounded-full ${job.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <div
+                    className={`h-2 w-2 rounded-full ${job.is_active ? 'bg-green-500' : 'bg-red-500'}`}
+                  />
                   <span>{job.is_active ? 'Aktif' : 'Pasif'}</span>
                 </div>
               </div>
@@ -709,7 +791,9 @@ export default function JobDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="font-headline text-xl">CV Yükle</CardTitle>
-              <CardDescription>Bu iş ilanına uygun adayın CV'sini yükleyin.</CardDescription>
+              <CardDescription>
+                Bu iş ilanına uygun adayın CV'sini yükleyin.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <CvUpload onFileUpload={handleFileUpload} isLoading={isLoading} />
@@ -722,42 +806,46 @@ export default function JobDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="font-headline">Eşleşen Adaylar</CardTitle>
-                  <CardDescription>Bu pozisyona başvuran adaylar, eşleşme skoruna göre sıralanmıştır.</CardDescription>
+                  <CardTitle className="font-headline">
+                    Eşleşen Adaylar
+                  </CardTitle>
+                  <CardDescription>
+                    Bu pozisyona başvuran adaylar, eşleşme skoruna göre
+                    sıralanmıştır.
+                  </CardDescription>
                 </div>
                 {candidates.length > 0 && (
-                  <Badge variant="secondary">
-                    {candidates.length} aday
-                  </Badge>
+                  <Badge variant="secondary">{candidates.length} aday</Badge>
                 )}
               </div>
             </CardHeader>
             <CardContent>
               {candidates.length > 0 ? (
                 <div className="space-y-4">
-                  {candidates
-                    .map((candidate) => {
-                      const applicant = getApplicantById(candidate.applicant_id);
+                  {candidates.map((candidate) => {
+                    const applicant = getApplicantById(candidate.applicant_id);
 
-                      if (!applicant) {
-                        return null;
-                      }
+                    if (!applicant) {
+                      return null;
+                    }
 
-                      return (
-                        <CandidateCard
-                          key={candidate.application_id}
-                          candidate={candidate}
-                          applicant={applicant}
-                          onStatusChange={handleStatusChange}
-                        />
-                      );
-                    })}
+                    return (
+                      <CandidateCard
+                        key={candidate.application_id}
+                        candidate={candidate}
+                        applicant={applicant}
+                        onStatusChange={handleStatusChange}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="text-center py-16 border-2 border-dashed rounded-lg flex flex-col items-center justify-center h-full">
+                <div className="flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed py-16 text-center">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-medium">Henüz aday yok</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Burada eşleşen adayları görmek için bir CV yükleyin.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Burada eşleşen adayları görmek için bir CV yükleyin.
+                  </p>
                 </div>
               )}
             </CardContent>
