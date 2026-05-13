@@ -1,115 +1,53 @@
-# backend/app/api/routers/jobs.py
-
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.api.dependencies import get_db
+from app.schemas.users import UserCreate, UserLogin
+from app.schemas.tokens import Token
+from app.crud.users import get_user_by_username, create_user
+from app.services.auth import create_password_hash, verify_password, create_access_token
+from app.models.users import User
 import uuid
 
-# Import dependencies and other project files
-from app.api.dependencies import get_db
-from app.crud import jobs as crud_jobs
-from app.schemas import jobs as schemas_jobs
-
-# Create an API router instance
 router = APIRouter(
-    prefix="/jobs",
-    tags=["jobs"],
+    prefix="/auth",
+    tags=["auth"],
 )
 
 
-@router.post(
-    "/",
-    response_model=schemas_jobs.JobPosting,
-    status_code=status.HTTP_201_CREATED
-)
-def create_job_posting(
-    job: schemas_jobs.JobPostingCreate,
-    db: Session = Depends(get_db)
-):
-    """
-    Create a new job posting.
-
-    - **title**: The job title.
-    - **description**: Detailed job description.
-    - **location**: Location of the job.
-    - **salary**: Optional salary string.
-    - **required_skills**: List of required skills.
-    """
-    return crud_jobs.create_job_posting(db=db, job=job)
-
-
-@router.get(
-    "/{job_id}",
-    response_model=schemas_jobs.JobPosting
-)
-def read_job_posting(
-    job_id: uuid.UUID,
-    db: Session = Depends(get_db)
-):
-    """
-    Retrieve a single job posting by its ID.
-    """
-    db_job = crud_jobs.get_job_posting(db=db, job_id=job_id)
-    if db_job is None:
+@router.post("/signup", response_model=Token, status_code=status.HTTP_201_CREATED)
+def signup(user_in: UserCreate, db: Session = Depends(get_db)):
+    existing = get_user_by_username(db, user_in.username)
+    if existing:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already taken"
         )
-    return db_job
-
-
-@router.get(
-    "/",
-    response_model=List[schemas_jobs.JobPosting]
-)
-def read_all_job_postings(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    """
-    Retrieve a list of all job postings with pagination.
-    """
-    jobs = crud_jobs.get_all_job_postings(db=db, skip=skip, limit=limit)
-    return jobs
-
-
-@router.put(
-    "/{job_id}",
-    response_model=schemas_jobs.JobPosting
-)
-def update_job_posting(
-    job_id: uuid.UUID,
-    job_update: schemas_jobs.JobPostingUpdate,
-    db: Session = Depends(get_db)
-):
-    """
-    Update an existing job posting.
-    """
-    db_job = crud_jobs.update_job_posting(db=db, job_id=job_id, job_update=job_update)
-    if db_job is None:
+    existing_email = db.query(User).filter(User.email == user_in.email).first()
+    if existing_email:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered"
         )
-    return db_job
+    user_data = {
+        "id": uuid.uuid4(),
+        "username": user_in.username,
+        "email": user_in.email,
+        "hashed_password": create_password_hash(user_in.password),
+        "role": user_in.role,
+    }
+    create_user(db, user_data)
+    access_token = create_access_token(data={"sub": user_in.username})
+    return Token(access_token=access_token)
 
 
-@router.delete(
-    "/{job_id}",
-    status_code=status.HTTP_204_NO_CONTENT
-)
-def delete_job_posting(
-    job_id: uuid.UUID,
-    db: Session = Depends(get_db)
-):
-    """
-    Delete a job posting.
-    """
-    db_job = crud_jobs.delete_job_posting(db=db, job_id=job_id)
-    if db_job is None:
+@router.post("/token", response_model=Token)
+def login(user_in: UserLogin, db: Session = Depends(get_db)):
+    user = get_user_by_username(db, user_in.username)
+    if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    access_token = create_access_token(data={"sub": user.username})
+    return Token(access_token=access_token)

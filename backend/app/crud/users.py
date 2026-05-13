@@ -8,6 +8,7 @@ def get_user_by_username(db: Session, username: str):
     Retrieves a user from the database by their unique username.
     """
     return db.query(User).filter(User.username == username).first()
+
 def create_user(db: Session, user_data: dict):
     """
     Creates a new user in the database.

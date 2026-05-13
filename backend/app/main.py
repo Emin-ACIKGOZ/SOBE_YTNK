@@ -1,22 +1,17 @@
-# backend/app/main.py
-
 from fastapi import FastAPI
 from app.database.base import Base
 from app.database.session import engine
-from app.api.routers import auth, temporary_test 
+from app.api.routers import auth, jobs, temporary_test
 
 
-# Initialize the FastAPI application
 app = FastAPI(
-    title="MAIN YTNK API",
+    title="SOBE YTNK API",
     version="0.1.0",
-    description="An API for tracking job applications."
+    description="Talent Acquisition & Candidate Scoring API",
 )
 
-# Include the new authentication router
 app.include_router(auth.router)
-
-# TEMPORARY: Include the test router for authentication verification
+app.include_router(jobs.router)
 app.include_router(temporary_test.router)
 
 # This part is for creating tables on startup, good for development
